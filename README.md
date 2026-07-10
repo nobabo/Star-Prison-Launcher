@@ -56,7 +56,7 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 
 - `user-config.json`: 사용자 설정과 로그인 세션 저장 위치
 - `install-state.json`: 런처 설치/실행 상태 기록
-- `config/`: 첫 실행 시 seed되는 앱/서버/배포 설정과 release archive 상태 파일
+- `config/`: 첫 실행 시 seed되는 앱/서버 설정, GitHub 배포 manifest 캐시와 release archive 상태 파일
 - `profile/`: 실제 Minecraft 프로필 루트
 - `profile/logs/`: Minecraft 로그
 - `profile/screenshots/`: Minecraft 스크린샷
@@ -69,12 +69,13 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 
 런처는 사용자 설정을 런타임마다 무조건 덮어쓰지 않습니다.
 
-- `config/*.json`은 첫 실행 시 기본값으로 seed되며, 이미 존재하면 로컬 파일을 우선 사용합니다.
+- `app.config.json`, `client.config.json`, `server.manifest.json`은 첫 실행 시 기본값으로 seed되며, 이미 존재하면 로컬 파일을 우선 사용합니다.
+- `distribution.json`은 `app.config.json`에 고정된 GitHub URL에서 실행 시마다 갱신하며, 네트워크 오류 시 마지막으로 검증된 캐시와 내장 기본값을 순서대로 사용합니다.
 - `options.txt`는 파일 전체 교체가 아니라 필요한 key 단위 병합을 기준으로 합니다.
 - `config.zip`, `shaderpacks.zip`처럼 사용자가 직접 바꿀 수 있는 파일은 기존 파일을 보존하는 방향으로 설치됩니다.
 - `mods.zip`은 서버가 관리하는 모드 구성을 맞추기 위한 release archive로 취급합니다.
 
-기본값을 바꿔야 할 때는 `config/client.config.json`, `config/app.config.json`, `config/distribution.json`, `config/server.manifest.json`을 먼저 확인하세요.
+런처 기본값을 바꿀 때는 `config/client.config.json`, `config/app.config.json`, `config/server.manifest.json`을 확인하세요. 모드·게임 설정·쉐이더 배포 정보는 GitHub의 `config/distribution.json`을 갱신합니다.
 
 ## 보안과 신뢰성
 

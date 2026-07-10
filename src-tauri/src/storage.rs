@@ -372,8 +372,89 @@ fn validate_download_url(value: &str) -> Result<Url, String> {
     Ok(parsed_url)
 }
 
-fn read_distribution_manifest() -> Result<Value, String> {
-    read_seeded_or_embedded_json_file("config/distribution.json")
+fn distribution_manifest_cache_path() -> PathBuf {
+    storage_root_path()
+        .join("config")
+        .join("distribution.remote.json")
+}
+
+fn validate_distribution_manifest(manifest: &Value) -> Result<(), String> {
+    if manifest.get("schemaVersion").and_then(Value::as_u64) != Some(1) {
+        return Err("배포 manifest의 schemaVersion은 1이어야 합니다.".to_string());
+    }
+
+    let stable_channel = manifest
+        .get("channels")
+        .and_then(Value::as_object)
+        .and_then(|channels| channels.get("stable"))
+        .and_then(Value::as_object)
+        .ok_or_else(|| "배포 manifest에 stable 채널이 없습니다.".to_string())?;
+
+    for field in ["runtime", "clientBundle"] {
+        if !stable_channel.get(field).is_some_and(Value::is_object) {
+            return Err(format!("배포 manifest stable 채널의 {field} 정보가 없습니다."));
+        }
+    }
+
+    Ok(())
+}
+
+fn read_cached_distribution_manifest() -> Result<Value, String> {
+    let path = distribution_manifest_cache_path();
+    let manifest = read_json_file(&path)?;
+    validate_distribution_manifest(&manifest)?;
+    Ok(manifest)
+}
+
+fn cache_remote_distribution_manifest(manifest: &Value) -> Result<(), String> {
+    let path = distribution_manifest_cache_path();
+    let parent = path
+        .parent()
+        .ok_or_else(|| "배포 manifest 캐시 폴더를 찾지 못했습니다.".to_string())?;
+    fs::create_dir_all(parent)
+        .map_err(|error| io_error("배포 manifest 캐시 폴더를 만들지 못했습니다", parent, error))?;
+    let content = serde_json::to_string_pretty(manifest)
+        .map_err(|error| format!("배포 manifest 캐시를 직렬화하지 못했습니다: {error}"))?;
+    fs::write(&path, format!("{content}\n"))
+        .map_err(|error| io_error("배포 manifest 캐시를 쓰지 못했습니다", &path, error))?;
+    Ok(())
+}
+
+fn read_distribution_manifest(app_config: &Value) -> Result<Value, String> {
+    let remote_url = app_config
+        .get("distributionManifest")
+        .and_then(Value::as_object)
+        .and_then(|manifest| manifest.get("url"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|url| !url.is_empty());
+
+    if let Some(remote_url) = remote_url {
+        match read_remote_json_once(remote_url).and_then(|manifest| {
+            validate_distribution_manifest(&manifest)?;
+            Ok(manifest)
+        }) {
+            Ok(manifest) => {
+                if let Err(error) = cache_remote_distribution_manifest(&manifest) {
+                    eprintln!("GitHub 배포 manifest 캐시 저장 실패: {error}");
+                }
+                return Ok(manifest);
+            }
+            Err(error) => {
+                eprintln!("GitHub 배포 manifest 갱신 실패: {error}");
+                match read_cached_distribution_manifest() {
+                    Ok(manifest) => return Ok(manifest),
+                    Err(cache_error) => {
+                        eprintln!("캐시된 배포 manifest를 사용할 수 없습니다: {cache_error}");
+                    }
+                }
+            }
+        }
+    }
+
+    let manifest = read_seeded_or_embedded_json_file("config/distribution.json")?;
+    validate_distribution_manifest(&manifest)?;
+    Ok(manifest)
 }
 
 fn read_json_file(path: &Path) -> Result<Value, String> {

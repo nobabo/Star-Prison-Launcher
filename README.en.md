@@ -56,7 +56,7 @@ Important entries:
 
 - `user-config.json`: user settings and auth session storage
 - `install-state.json`: launcher install/run state
-- `config/`: first-run seeded config and release archive state files
+- `config/`: first-run seeded app/server config, the GitHub distribution manifest cache, and release archive state files
 - `profile/`: actual Minecraft profile root
 - `profile/logs/`: Minecraft logs
 - `profile/screenshots/`: Minecraft screenshots
@@ -69,12 +69,13 @@ Downloaded zip files and staged folders are cleaned up when installation succeed
 
 The launcher does not blindly overwrite user data on every run.
 
-- `config/*.json` files are seeded on first run and local files take priority afterward.
+- `app.config.json`, `client.config.json`, and `server.manifest.json` are seeded on first run and local files take priority afterward.
+- `distribution.json` is refreshed on every launch from the fixed GitHub URL in `app.config.json`; network failures fall back to the last verified cache, then the embedded default.
 - `options.txt` is merged by key instead of being replaced wholesale.
 - User-editable archives such as `config.zip` and `shaderpacks.zip` preserve existing files where appropriate.
 - `mods.zip` is treated as the server-managed mod archive.
 
-For default changes, start with `config/client.config.json`, `config/app.config.json`, `config/distribution.json`, and `config/server.manifest.json`.
+For launcher default changes, start with `config/client.config.json`, `config/app.config.json`, and `config/server.manifest.json`. Update GitHub's `config/distribution.json` for mod, game-config, and shader distribution changes.
 
 ## Security and Reliability
 
