@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+  <!-- left cuff -->
+  <rect x="10" y="22" width="16" height="4" fill="#7b3b57"/>
+  <rect x="8" y="26" width="4" height="14" fill="#7b3b57"/>
+  <rect x="24" y="26" width="4" height="14" fill="#7b3b57"/>
+  <rect x="10" y="40" width="16" height="4" fill="#7b3b57"/>
+
+  <rect x="12" y="24" width="12" height="2" fill="#f28db8"/>
+  <rect x="10" y="28" width="2" height="10" fill="#f28db8"/>
+  <rect x="24" y="28" width="2" height="10" fill="#f28db8"/>
+  <rect x="12" y="40" width="12" height="2" fill="#f28db8"/>
+  <rect x="12" y="28" width="12" height="10" fill="#1b141c"/>
+  <rect x="13" y="29" width="2" height="8" fill="#241824"/>
+  <rect x="21" y="29" width="2" height="8" fill="#241824"/>
+  <rect x="14" y="30" width="2" height="2" fill="#f6c0d8"/>
+  <rect x="18" y="30" width="2" height="2" fill="#f6c0d8"/>
+  <rect x="12" y="25" width="3" height="1" fill="#ffd8e7"/>
+  <rect x="11" y="27" width="1" height="8" fill="#ffd8e7"/>
+
+  <!-- right cuff -->
+  <rect x="38" y="22" width="16" height="4" fill="#7b3b57"/>
+  <rect x="36" y="26" width="4" height="14" fill="#7b3b57"/>
+  <rect x="52" y="26" width="4" height="14" fill="#7b3b57"/>
+  <rect x="38" y="40" width="16" height="4" fill="#7b3b57"/>
+
+  <rect x="40" y="24" width="12" height="2" fill="#f28db8"/>
+  <rect x="38" y="28" width="2" height="10" fill="#f28db8"/>
+  <rect x="52" y="28" width="2" height="10" fill="#f28db8"/>
+  <rect x="40" y="40" width="12" height="2" fill="#f28db8"/>
+  <rect x="40" y="28" width="12" height="10" fill="#1b141c"/>
+  <rect x="41" y="29" width="2" height="8" fill="#241824"/>
+  <rect x="49" y="29" width="2" height="8" fill="#241824"/>
+  <rect x="42" y="30" width="2" height="2" fill="#f6c0d8"/>
+  <rect x="46" y="30" width="2" height="2" fill="#f6c0d8"/>
+  <rect x="40" y="25" width="3" height="1" fill="#ffd8e7"/>
+  <rect x="39" y="27" width="1" height="8" fill="#ffd8e7"/>
+
+  <!-- chain -->
+  <rect x="26" y="29" width="4" height="2" fill="#c86d93"/>
+  <rect x="30" y="28" width="4" height="4" fill="#f28db8"/>
+  <rect x="34" y="29" width="4" height="2" fill="#c86d93"/>
+  <rect x="27" y="32" width="4" height="2" fill="#c86d93"/>
+  <rect x="31" y="31" width="4" height="4" fill="#f6c0d8"/>
+  <rect x="35" y="32" width="4" height="2" fill="#c86d93"/>
+
+  <!-- center lock detail -->
+  <rect x="31" y="27" width="2" height="2" fill="#ffd8e7"/>
+  <rect x="31" y="33" width="2" height="2" fill="#ffd8e7"/>
+  <rect x="29" y="29" width="2" height="2" fill="#ffd8e7"/>
+  <rect x="33" y="31" width="2" height="2" fill="#ffd8e7"/>
+
+  <!-- subtle sparkle/highlight -->
+  <rect x="14" y="20" width="2" height="2" fill="#ffd8e7"/>
+  <rect x="48" y="20" width="2" height="2" fill="#ffd8e7"/>
+  <rect x="16" y="18" width="1" height="1" fill="#ffd8e7"/>
+  <rect x="46" y="18" width="1" height="1" fill="#ffd8e7"/>
+</svg>

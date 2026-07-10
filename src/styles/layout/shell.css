@@ -1,0 +1,70 @@
+.page-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.page-shell > .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 120;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 22px;
+    align-items: center;
+    padding: 16px 22px;
+    background: transparent;
+    isolation: isolate;
+    -webkit-app-region: drag;
+}
+
+.page-shell .topbar-tools {
+    grid-column: 3;
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    -webkit-app-region: no-drag;
+}
+
+.page-shell > .page-content {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    padding: 0 22px 22px;
+    overflow: hidden;
+}
+
+#view-host,
+.page-shell .view-host {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+.stack-layout {
+    display: grid;
+    gap: 18px;
+}
+
+.eyebrow {
+    margin: 0 0 var(--space-2);
+    color: var(--accent);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: var(--space-3);
+    -webkit-app-region: no-drag;
+}
+

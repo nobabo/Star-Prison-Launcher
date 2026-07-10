@@ -1,0 +1,107 @@
+.topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 18px;
+    align-items: center;
+    padding: 18px 28px 16px;
+}
+
+.topbar-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+    -webkit-app-region: drag;
+}
+
+.topbar-brand__mark {
+    width: 42px;
+    height: 42px;
+    image-rendering: pixelated;
+    filter: drop-shadow(0 0 18px rgb(244 166 200 / 36%));
+}
+
+.topbar-brand__copy {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.topbar-brand__name {
+    margin: 0;
+    color: var(--terminal-text);
+    font-family: var(--terminal-display-font);
+    font-size: 1.35rem;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: 0.02em;
+}
+
+.topbar-brand__sub {
+    margin: 0;
+    color: var(--terminal-text-muted);
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+}
+
+.topbar .status-pill {
+    justify-self: start;
+    padding: 8px 14px;
+    border: 1px solid var(--terminal-border);
+    border-radius: 8px;
+    background: var(--terminal-surface);
+    box-shadow: none;
+}
+
+.topbar .status-pill.success {
+    border-color: rgb(151 215 183 / 30%);
+    background: rgb(28 42 34 / 60%);
+}
+
+.topbar .status-pill.warning {
+    border-color: rgb(255 159 67 / 30%);
+    background: rgb(48 36 22 / 60%);
+}
+
+.topbar .status-pill.error {
+    border-color: rgb(238 154 154 / 30%);
+    background: rgb(48 24 26 / 60%);
+}
+
+.topbar-tools {
+    display: inline-flex;
+    align-items: center;
+    justify-self: end;
+    gap: 8px;
+    -webkit-app-region: no-drag;
+}
+
+.page-content {
+    padding: 0 28px 24px;
+}
+
+.view-host {
+    width: min(100%, 1440px);
+}
+
+/* Top logo */
+
+.top-logo {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 1;
+    transform: translateX(-50%);
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.top-logo__img {
+    width: 160px;
+    height: 160px;
+    object-fit: contain;
+    filter: drop-shadow(0 0 16px rgb(255 90 158 / 28%));
+    pointer-events: auto;
+}

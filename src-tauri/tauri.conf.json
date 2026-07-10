@@ -1,0 +1,50 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "star-prison",
+  "version": "1.0.0",
+  "identifier": "com.nobabo.starprisonlauncher",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "create": false,
+        "url": "landing.html",
+        "title": "star-prison",
+        "width": 1380,
+        "height": 860,
+        "minWidth": 1100,
+        "minHeight": 720,
+        "decorations": false,
+        "resizable": true,
+        "center": true
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; connect-src 'self' ipc: http://ipc.localhost https://star-prison.yjh802637.workers.dev; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://mineskin.eu https://*.googleusercontent.com https://cdn.discordapp.com https://media.discordapp.net; object-src 'none'; base-uri 'self'; form-action 'none'; frame-src 'none'; worker-src 'none'; media-src 'none'; frame-ancestors 'none'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "sidebarImage": "installer-assets/nsis-sidebar.bmp",
+        "headerImage": "installer-assets/nsis-header.bmp",
+        "installMode": "currentUser",
+        "languages": ["Korean"]
+      }
+    },
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}

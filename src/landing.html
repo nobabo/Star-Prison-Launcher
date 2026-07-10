@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ko">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>별도소 런처</title>
+        <link rel="stylesheet" href="./styles/app.css" />
+    </head>
+    <body>
+        <div class="page-shell">
+            <header class="topbar">
+                <div class="topbar-brand" aria-label="별도소"></div>
+                <div class="topbar-tools">
+                    <div class="status-pill" id="status-card" aria-label="계정 연결 필요" title="계정 연결 필요"></div>
+                    <div class="window-controls">
+                        <button class="window-control-button" id="window-minimize-button" type="button" aria-label="최소화" title="최소화">_</button>
+                        <button class="window-control-button" id="window-maximize-button" type="button" aria-label="최대화" title="최대화">□</button>
+                        <button class="window-control-button close" id="window-close-button" type="button" aria-label="닫기" title="닫기">×</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="page-content">
+                <div class="top-logo">
+                    <img class="top-logo__img" src="./assets/logo.png" alt="" aria-hidden="true" />
+                </div>
+                <section class="view-host" id="view-host"></section>
+            </main>
+        </div>
+
+        <dialog class="overlay" id="overlay">
+            <div class="overlay-scrim" aria-hidden="true"></div>
+            <div class="overlay-card" id="overlay-card" role="alertdialog" aria-modal="true" aria-labelledby="overlay-title" aria-describedby="overlay-body">
+                <div class="overlay-content">
+                    <div class="overlay-header">
+                        <div class="overlay-heading">
+                            <div class="overlay-heading-top">
+                                <button class="icon-button overlay-close-button" id="overlay-close" type="button" aria-label="알림 닫기" title="닫기">×</button>
+                            </div>
+                            <h2 id="overlay-title">안내</h2>
+                        </div>
+                    </div>
+                    <div class="overlay-body" id="overlay-body"></div>
+                </div>
+                <div class="overlay-actions" id="overlay-actions"></div>
+            </div>
+        </dialog>
+
+        <script type="module" src="./app/main.js"></script>
+    </body>
+</html>

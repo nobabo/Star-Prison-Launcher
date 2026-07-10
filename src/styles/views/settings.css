@@ -1,0 +1,170 @@
+.settings-form {
+    display: grid;
+    gap: 26px;
+    max-width: none;
+}
+
+.settings-group {
+    display: grid;
+    gap: 14px;
+}
+
+.settings-group__label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-group__label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--terminal-border), transparent);
+}
+
+.settings-group__body {
+    display: grid;
+    gap: 14px;
+}
+
+.settings-grid-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.settings-help {
+    margin: 0;
+    color: var(--terminal-text-muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.directory-management {
+    display: grid;
+    gap: 8px;
+}
+
+.directory-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+}
+
+.managed-directory-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 48px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--terminal-pink);
+    transition:
+        border-color 160ms ease,
+        color 160ms ease,
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.managed-directory-button:hover,
+.managed-directory-button:focus-visible {
+    border-color: var(--terminal-pink-glow);
+    color: var(--terminal-pink);
+    background: var(--terminal-pink-soft);
+}
+
+.settings-actions {
+    position: sticky;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px 0 4px;
+    margin-top: 4px;
+    border-top: 1px solid var(--terminal-border);
+}
+
+.settings-actions .primary-button,
+.settings-actions .secondary-button {
+    --settings-button-wave-offset: -120%;
+
+    min-width: 240px;
+}
+
+.settings-actions .primary-button::after,
+.settings-actions .secondary-button::after {
+    left: var(--settings-button-wave-offset);
+}
+
+.settings-actions .secondary-button {
+    border: 2px solid var(--terminal-pink);
+    background: transparent;
+    color: var(--terminal-pink);
+}
+
+.advanced-settings {
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1px solid var(--terminal-border);
+    border-radius: 14px;
+    background: rgb(255 255 255 / 2%);
+}
+
+.advanced-settings summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    list-style: none;
+    cursor: pointer;
+    color: var(--terminal-text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.advanced-settings summary::-webkit-details-marker {
+    display: none;
+}
+
+.advanced-settings summary::before {
+    content: '▸';
+    color: var(--terminal-pink);
+    transition: transform 180ms ease;
+    font-size: 0.8rem;
+}
+
+.advanced-settings[open] summary::before {
+    transform: rotate(90deg);
+}
+
+@media (max-width: 640px) {
+    .terminal-view {
+        padding: 20px 16px 24px;
+    }
+
+    .terminal-panel {
+        padding: 18px;
+    }
+
+    .settings-grid-2 {
+        grid-template-columns: 1fr;
+    }
+
+    .directory-actions {
+        grid-template-columns: 1fr;
+    }
+
+    .settings-actions {
+        flex-direction: column-reverse;
+    }
+
+    .settings-actions .primary-button,
+    .settings-actions .secondary-button {
+        width: 100%;
+    }
+}

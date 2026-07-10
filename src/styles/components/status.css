@@ -1,0 +1,52 @@
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 9px 12px 9px 11px;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 4%);
+    border: 1px solid transparent;
+    user-select: none;
+    transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.status-pill.success {
+    cursor: pointer;
+}
+
+.status-pill.success:hover,
+.status-pill.success:focus-visible {
+    background: rgb(151 215 183 / 10%);
+    border-color: rgb(151 215 183 / 24%);
+}
+
+.status-pill.success:active {
+    transform: translateY(1px) scale(0.98);
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: var(--text-muted);
+    box-shadow: 0 0 0 3px rgb(255 255 255 / 6%);
+}
+
+.status-pill.success .status-dot {
+    background: var(--success);
+}
+
+.status-pill.warning .status-dot {
+    background: var(--warning);
+}
+
+.status-pill.error .status-dot {
+    background: var(--error);
+}
+
+.status-text {
+    font-size: 0.84rem;
+    font-weight: 700;
+}
+

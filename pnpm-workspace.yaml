@@ -1,0 +1,17 @@
+storeDir: .pnpm-store
+supportedArchitectures:
+  os:
+    - current
+    - linux
+    - win32
+  cpu:
+    - current
+    - x64
+  libc:
+    - current
+    - glibc
+packages:
+  - '.'
+  - 'apps/*'
+allowBuilds:
+  esbuild: true

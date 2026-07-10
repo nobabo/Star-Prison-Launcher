@@ -1,0 +1,98 @@
+.field-short {
+    max-width: 64px;
+}
+
+.field-medium {
+    max-width: 176px;
+}
+
+.field {
+    display: grid;
+    gap: 8px;
+}
+
+.toggle-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 0.94rem;
+    font-weight: 600;
+}
+
+.toggle-field input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
+.field-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.field input,
+.field select {
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 5%);
+    color: var(--text-primary);
+    font-size: 0.94rem;
+}
+
+.field select {
+    cursor: pointer;
+}
+
+.field select option {
+    background: #000;
+    color: #fff;
+}
+
+.field input:focus,
+.field select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(244 166 200 / 16%);
+    background: rgb(255 255 255 / 7%);
+}
+
+.advanced-settings::details-content {
+    block-size: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+        block-size 240ms ease,
+        opacity 180ms ease;
+    transition-behavior: allow-discrete;
+}
+
+.advanced-settings[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+}
+
+.advanced-settings__body {
+    display: grid;
+    gap: 16px;
+    padding-top: 4px;
+}
+
+.advanced-settings[open] .advanced-settings__body {
+    animation: advanced-settings-fade-in 220ms ease both;
+}
+
+
+@keyframes advanced-settings-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

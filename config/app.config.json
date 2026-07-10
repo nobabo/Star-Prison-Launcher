@@ -1,0 +1,28 @@
+{
+    "productName": "StarPrison-Launcher",
+    "appId": "com.nobabo.starprisonlauncher",
+    "autoConnectServer": "gomsv.kr",
+    "supportUrl": "https://github.com/nobabo",
+    "microsoftClientId": "007a0de5-c81c-4e3a-a296-6a8776e9ba47",
+    "microsoftRedirectUri": "https://login.microsoftonline.com/common/oauth2/nativeclient",
+    "allowPrerelease": false,
+    "features": {
+        "discordRichPresence": false
+    },
+    "discordNotices": {
+        "enabled": true,
+        "endpointUrl": "https://star-prison.yjh802637.workers.dev/notices",
+        "fallbackCards": [
+            {
+                "eyebrow": "알림",
+                "title": "공지 예정",
+                "body": "추후 공지사항이 안내될 예정입니다."
+            }
+        ]
+    },
+    "launcherCompanion": {
+        "enabled": false,
+        "apiBaseUrl": "",
+        "bearerToken": ""
+    }
+}

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: Frontend and pnpm audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: node --check src/app/main.js
+      - run: node --check src/views/landing.js
+      - run: node -e "JSON.parse(require('fs').readFileSync('config/distribution.json', 'utf8'))"
+      - run: pnpm lint
+      - run: pnpm audit --audit-level low
+
+  rust-windows:
+    name: Rust Windows
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+
+      - uses: dtolnay/rust-toolchain@4be7066ada62dd38de10e7b70166bc74ed198c30 # stable
+        with:
+          components: clippy,rustfmt
+
+      - run: cargo fmt --check --manifest-path src-tauri/Cargo.toml
+      - run: cargo check --locked --manifest-path src-tauri/Cargo.toml
+      - run: cargo clippy --locked --all-targets --manifest-path src-tauri/Cargo.toml -- -D warnings

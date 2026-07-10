@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "launcherVersion": "1.0.0",
+  "channels": {
+    "stable": {
+      "runtime": {
+        "id": "java-21",
+        "version": "21.0.11+10",
+        "majorVersion": 21,
+        "url": "https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.11%2B10/OpenJDK21U-jre_x64_windows_hotspot_21.0.11_10.zip",
+        "executablePath": "bin/javaw.exe",
+        "size": 49005708,
+        "sha256": "be26677aaa20b39a62edcaab4c8857a8b76673b0f45abc0b6143b142b62717e4"
+      },
+      "version": "1.0.0",
+      "publishedAt": "2026-05-09T12:00:00.000Z",
+      "notes": [
+        "Minecraft 1.21.11 Fabric Client"
+      ],
+      "clientBundle": {
+        "bundleId": "star-prison-client",
+        "sourceType": "fabricRemote",
+        "loaderVersion": "latest"
+      },
+      "releaseArchives": {
+        "mods": {
+          "version": "v1.0.0",
+          "fileName": "mods.zip",
+          "url": "https://github.com/nobabo/star-prison/releases/download/v1.0.0/mods.zip?sha=d65c686ae93c288983f560fe66843eddf63bf523a817777d1750b53de5287c5a",
+          "size": 44194354,
+          "sha256": "d65c686ae93c288983f560fe66843eddf63bf523a817777d1750b53de5287c5a"
+        },
+        "config": {
+          "version": "v1.0.0",
+          "fileName": "config.zip",
+          "url": "https://github.com/nobabo/star-prison/releases/download/v1.0.0/config.zip?sha=1cf0457fa746873e89ff677da0df8214c60aaabea64ddac41921bb399c809db9",
+          "size": 18879,
+          "sha256": "1cf0457fa746873e89ff677da0df8214c60aaabea64ddac41921bb399c809db9"
+        },
+        "shaderpacks": {
+          "version": "v1.0.0",
+          "fileName": "shaderpacks.zip",
+          "url": "https://github.com/nobabo/star-prison/releases/download/v1.0.0/shaders.zip?sha=81faca597e46a4d888bd0b376ab2d6f8d299060794ede7f7d8d5fb6c0943a26f",
+          "size": 8555341,
+          "sha256": "81faca597e46a4d888bd0b376ab2d6f8d299060794ede7f7d8d5fb6c0943a26f"
+        }
+      },
+      "modpackManifest": null
+    },
+    "prerelease": null
+  }
+}

@@ -1,0 +1,9 @@
+.files/
+.tmp/
+dist/*.exe
+node_modules/
+src-tauri/gen/
+src-tauri/target/
+src/vendor/
+target/
+pnpm-lock.yaml

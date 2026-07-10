@@ -1,0 +1,121 @@
+.terminal-icon-button {
+    display: inline-grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--terminal-border);
+    border-radius: 10px;
+    background: rgb(255 255 255 / 4%);
+    color: var(--terminal-text-secondary);
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        border-color 160ms ease,
+        color 160ms ease,
+        transform 160ms ease;
+}
+
+.terminal-icon-button:hover,
+.terminal-icon-button:focus-visible {
+    background: var(--terminal-pink-soft);
+    border-color: rgb(255 90 158 / 30%);
+    color: var(--terminal-pink);
+}
+
+.terminal-icon-button:focus-visible {
+    outline: 2px solid rgb(255 90 158 / 50%);
+    outline-offset: 2px;
+}
+
+.terminal-icon-button .button-icon {
+    display: block;
+}
+
+
+
+.terminal-kicker {
+    margin: 0;
+    color: var(--terminal-pink);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.terminal-view {
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    width: min(100%, 760px);
+    margin: 0 auto;
+    padding: 28px 32px 32px;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+.terminal-view__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-top: 25px;
+}
+
+.terminal-view__back {
+    margin-left: auto;
+    width: 120px;
+    height: 120px;
+    border: none;
+    background: transparent;
+    border-radius: 0;
+    color: var(--terminal-pink);
+    transition: color 200ms ease;
+}
+
+.terminal-view__back:hover,
+.terminal-view__back:focus-visible {
+    background: transparent;
+    border-color: transparent;
+    color: var(--terminal-pink-glow);
+}
+
+.terminal-view__back .button-icon {
+    width: 96px;
+    height: 96px;
+    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.terminal-view__back:hover .button-icon,
+.terminal-view__back:focus-visible .button-icon {
+    transform: scale(1.15) rotate(-8deg);
+}
+
+.terminal-view__heading {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.terminal-view__title {
+    margin: 0;
+    color: var(--terminal-text);
+    font-family: var(--terminal-display-font);
+    font-size: 1.6rem;
+    font-weight: 400;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+}
+
+.terminal-panel {
+    position: relative;
+    display: grid;
+    gap: 22px;
+}
+
+.terminal-panel--center {
+    align-content: center;
+    justify-items: center;
+    text-align: center;
+}
+

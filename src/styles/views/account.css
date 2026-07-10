@@ -1,0 +1,123 @@
+.account-connect-actions {
+    margin-top: 18px;
+}
+
+.account-empty-layout {
+    min-height: calc(100vh - 300px);
+    place-items: center;
+}
+
+.account-empty-panel {
+    width: min(100%, 420px);
+    text-align: center;
+}
+
+.account-empty-panel .account-connect-actions {
+    justify-content: center;
+}
+
+.account-overview {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    place-items: center center;
+    margin-top: 0;
+}
+
+.account-layout {
+    min-height: calc(100vh - 220px);
+}
+
+.account-panel {
+    min-height: inherit;
+    display: grid;
+    grid-template-rows: auto auto;
+    align-content: center;
+    justify-items: center;
+    gap: 22px;
+    transform: translateY(-40px);
+}
+
+.account-summary {
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    text-align: center;
+}
+
+.account-avatar-shell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: min(100%, 320px);
+    min-height: 108px;
+    border-radius: 24px;
+    background: transparent;
+}
+
+.account-avatar-card {
+    display: grid;
+    align-content: start;
+    justify-items: center;
+    gap: 12px;
+    min-height: 0;
+    width: min(100%, 164px);
+    padding: 18px 16px;
+    border-radius: 18px;
+    background: transparent;
+}
+
+.account-avatar-card--head {
+    align-content: start;
+}
+
+.account-avatar-label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.account-avatar {
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+    image-rendering: pixelated;
+}
+
+.account-avatar--head {
+    max-width: 92px;
+}
+
+.account-profile-copy {
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    text-align: center;
+}
+
+.account-name {
+    margin: 0;
+    color: var(--text-primary);
+    font-family: var(--terminal-display-font);
+    font-size: 2rem;
+    font-weight: 400;
+    line-height: 1;
+}
+
+.account-sign-out-button {
+    min-height: 38px;
+    margin-bottom: 18px;
+    padding: 8px 18px;
+    border: 3px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+}
+
+.account-sign-out-button:hover:not(:disabled) {
+    border-color: var(--accent-strong);
+    background: rgb(244 166 200 / 8%);
+}
+

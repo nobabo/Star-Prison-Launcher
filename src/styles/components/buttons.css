@@ -1,0 +1,163 @@
+.primary-button,
+.secondary-button,
+.icon-button {
+    border: 0 solid transparent;
+    border-radius: 12px;
+    cursor: pointer;
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 0.94rem;
+    font-weight: 700;
+    transition: transform 160ms ease, background-color 160ms ease, color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.primary-button,
+.secondary-button {
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+}
+
+.primary-button::after,
+.secondary-button::after {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    left: -70%;
+    width: 320%;
+    bottom: -4px;
+    height: calc(40% + 18px);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), transparent 30%),
+        linear-gradient(
+            135deg,
+            color-mix(in srgb, var(--accent) 72%, white 28%),
+            color-mix(in srgb, var(--accent) 70%, transparent)
+        );
+    mask-image: url("data:image/svg+xml,%3Csvg width='360' height='40' viewBox='0 0 360 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 C 12 2 28 2 40 10 C 52 18 68 18 80 10 C 92 2 108 2 120 10 C 132 18 148 18 160 10 C 172 2 188 2 200 10 C 212 18 228 18 240 10 C 252 2 268 2 280 10 C 292 18 308 18 320 10 C 332 2 348 2 360 10 V40 H0 Z' fill='black'/%3E%3C/svg%3E");
+    mask-repeat: no-repeat;
+    mask-size: 100% 100%;
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+    transition: transform 1100ms cubic-bezier(0.2, 0.82, 0.22, 1), opacity 1520ms ease;
+    animation: button-liquid-wave 4s ease-in-out infinite alternate;
+    animation-play-state: paused;
+}
+
+.settings-form .primary-button::after,
+.secondary-button::after {
+    bottom: -14px;
+    height: calc(58% + 20px);
+}
+
+.icon-only-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 112px;
+    min-height: 52px;
+    padding: 10px 28px;
+    border-radius: 16px;
+}
+
+.button-icon {
+    position: relative;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    display: block;
+    object-fit: contain;
+}
+
+.primary-button {
+    color: var(--terminal-pink);
+    background: transparent;
+    border: 2px solid var(--terminal-pink);
+    box-shadow: 0 0 0 1px rgb(255 90 158 / 8%);
+}
+
+.primary-button:hover:not(:disabled) {
+    background: var(--terminal-pink-soft);
+    border-color: #ff7eb8;
+    color: #fff7fb;
+    box-shadow: 0 0 0 1px rgb(255 90 158 / 14%), 0 14px 32px rgb(255 90 158 / 14%);
+}
+
+.secondary-button {
+    color: var(--terminal-text);
+    background: rgb(255 255 255 / 5%);
+    border-color: var(--terminal-border);
+}
+
+.secondary-button.overlay-confirm-button {
+    margin-top: 0;
+    border: 2px solid var(--terminal-pink);
+    background: transparent;
+    color: white;
+}
+
+.secondary-button.account-sign-out-button {
+    border: 3px solid var(--terminal-pink);
+    background: transparent;
+    color: var(--terminal-pink);
+    margin-top: 20px;
+    padding: 0;
+}
+
+.primary-button.icon-only-button,
+.secondary-button.icon-only-button,
+.secondary-button.account-sign-out-button.icon-only-button {
+    border-color: var(--terminal-pink);
+    background: transparent;
+    color: var(--terminal-pink);
+}
+
+.primary-button.icon-only-button:hover:not(:disabled),
+.secondary-button.icon-only-button:hover:not(:disabled),
+.secondary-button.account-sign-out-button.icon-only-button:hover:not(:disabled) {
+    background: var(--terminal-pink-soft);
+    border-color: #ff7eb8;
+    color: #fff7fb;
+    box-shadow: 0 14px 32px rgb(255 90 158 / 14%);
+}
+
+.secondary-button:hover:not(:disabled),
+.icon-button:hover:not(:disabled) {
+    border-color: var(--terminal-pink);
+    background: var(--terminal-pink-soft);
+}
+
+.secondary-button:hover:not(:disabled) {
+    border-color: #ff7eb8;
+    color: #fff7fb;
+    box-shadow: 0 14px 32px rgb(255 90 158 / 12%);
+}
+
+.icon-button {
+    color: var(--text-secondary);
+    background: transparent;
+}
+
+.primary-button:hover:not(:disabled)::after,
+.primary-button:focus-visible:not(:disabled)::after,
+.secondary-button:hover:not(:disabled)::after,
+.secondary-button:focus-visible:not(:disabled)::after {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    animation-play-state: running;
+}
+
+.primary-button:focus-visible,
+.secondary-button:focus-visible {
+    outline: 2px solid rgb(247 204 217 / 58%);
+    outline-offset: 3px;
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+    opacity: 0.52;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

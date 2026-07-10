@@ -1,0 +1,120 @@
+@media (width <= 1024px) {
+    .topbar,
+    .page-shell > .topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 52px;
+        padding-top: 10px;
+    }
+
+    .topbar-tools,
+    .page-shell .topbar-tools {
+        justify-content: flex-end;
+    }
+}
+
+@media (width <= 720px) {
+    .topbar,
+    .page-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .page-shell > .topbar,
+    .page-shell > .page-content {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .topbar,
+    .page-shell > .topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        min-height: 50px;
+        gap: 10px 14px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .topbar-tools,
+    .page-shell .topbar-tools {
+        grid-column: 2;
+        width: auto;
+        justify-content: flex-end;
+    }
+
+    .status-pill {
+        display: none;
+    }
+
+    .panel {
+        padding: 20px;
+    }
+
+    .overlay-content {
+        min-height: 236px;
+        padding: 18px 18px 88px;
+    }
+
+    .detail-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .detail-value {
+        text-align: left;
+    }
+
+    .account-overview {
+        grid-template-columns: 1fr;
+    }
+
+    .account-avatar-shell {
+        min-height: auto;
+    }
+
+    .account-avatar-card {
+        width: min(100%, 144px);
+    }
+
+    .field-short,
+    .field-medium {
+        max-width: 100%;
+    }
+
+    .overlay-header {
+        gap: 10px;
+    }
+
+    .overlay-close-button {
+        width: 38px;
+        padding-inline: 12px;
+    }
+
+    .overlay-body {
+        width: min(100%, 272px);
+    }
+
+    .overlay-body p,
+    .overlay-list {
+        max-width: 100%;
+        width: 100%;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .overlay-card,
+    .overlay-close-button,
+    .primary-button::after,
+    .secondary-button::after {
+        animation: none;
+    }
+
+    .primary-button,
+    .secondary-button,
+    .icon-button,
+    .overlay-card,
+    .overlay-header,
+    .overlay-body,
+    .overlay-actions {
+        transition: none;
+    }
+}
