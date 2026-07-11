@@ -2,9 +2,9 @@
 /.codex
 /.docs
 /.files
-/.workers
 /.pnpm-store
 /node_modules
 /src-tauri/target
 /dist/*.exe
 /.tmp
+/workers/*/node_modules

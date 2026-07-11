@@ -12,6 +12,7 @@ export default [
             '.files/**',
             '.tmp/**',
             '.workers/**',
+            'workers/**',
             'node_modules/**',
             'src-tauri/target/**',
             'src-tauri/gen/**',

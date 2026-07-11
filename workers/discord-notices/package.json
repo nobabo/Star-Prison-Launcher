@@ -1,0 +1,12 @@
+{
+  "name": "star-prison-discord-notices-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.16.1"
+  }
+}

@@ -1,0 +1,10 @@
+name = "star-prison-discord-notices"
+main = "src/index.js"
+compatibility_date = "2026-05-22"
+
+[vars]
+DISCORD_GUILD_ID = "1501856308259983511"
+DISCORD_CHANNEL_ID = "1502417316196122684"
+NOTICE_LIMIT = "20"
+CACHE_TTL_SECONDS = "60"
+ALLOWED_ORIGIN = "http://tauri.localhost"
