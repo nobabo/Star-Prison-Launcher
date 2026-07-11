@@ -6,7 +6,6 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import yazl from "yazl";
-import { syncPackageVersion } from "../../sync-package-version.mjs";
 
 const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const DISTRIBUTION_PATH = path.join(ROOT_DIR, "config", "distribution.json");
@@ -344,8 +343,6 @@ async function syncArchive(distribution, spec) {
   console.log(`${spec.archiveKey}: ${localDigest.size} bytes, ${localDigest.sha256}`);
   return metadataChanged;
 }
-
-syncPackageVersion({ quiet: true });
 
 const distribution = readDistribution();
 let changed = false;

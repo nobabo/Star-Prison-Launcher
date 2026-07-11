@@ -6,7 +6,6 @@ const ROOT_DIR = process.cwd();
 const PACKAGE_PATH = path.join(ROOT_DIR, "package.json");
 const CARGO_TOML_PATH = path.join(ROOT_DIR, "src-tauri", "Cargo.toml");
 const TAURI_CONFIG_PATH = path.join(ROOT_DIR, "src-tauri", "tauri.conf.json");
-const DISTRIBUTION_PATH = path.join(ROOT_DIR, "config", "distribution.json");
 
 function fail(message) {
   throw new Error(message);
@@ -24,10 +23,6 @@ function writeTextIfChanged(filePath, content) {
 
   fs.writeFileSync(filePath, content, "utf8");
   return true;
-}
-
-function writeJsonIfChanged(filePath, value) {
-  return writeTextIfChanged(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
 
 export function readPackageVersion() {
@@ -67,52 +62,6 @@ function syncTauriConfig(version) {
   return writeTextIfChanged(TAURI_CONFIG_PATH, next);
 }
 
-function releaseDownloadUrlWithVersion(url, version) {
-  const marker = "/releases/download/";
-  const tagStart = url.indexOf(marker);
-  if (tagStart < 0) {
-    return url;
-  }
-
-  const releaseTagStart = tagStart + marker.length;
-  const releaseTagEndOffset = url.slice(releaseTagStart).indexOf("/");
-  if (releaseTagEndOffset < 0) {
-    return url;
-  }
-
-  const releaseTagEnd = releaseTagStart + releaseTagEndOffset;
-  return `${url.slice(0, releaseTagStart)}${version}${url.slice(releaseTagEnd)}`;
-}
-
-function syncDistribution(version) {
-  const distribution = readJson(DISTRIBUTION_PATH);
-  distribution.launcherVersion = version;
-
-  for (const channel of Object.values(distribution.channels ?? {})) {
-    if (!channel || typeof channel !== "object") {
-      continue;
-    }
-
-    if (Object.hasOwn(channel, "version")) {
-      channel.version = version;
-    }
-
-    for (const archive of Object.values(channel.releaseArchives ?? {})) {
-      if (!archive || typeof archive !== "object") {
-        continue;
-      }
-
-      archive.version = version;
-
-      if (typeof archive.url === "string") {
-        archive.url = releaseDownloadUrlWithVersion(archive.url, version);
-      }
-    }
-  }
-
-  return writeJsonIfChanged(DISTRIBUTION_PATH, distribution);
-}
-
 export function syncPackageVersion({ quiet = false } = {}) {
   const version = readPackageVersion();
   const changedFiles = [];
@@ -120,7 +69,6 @@ export function syncPackageVersion({ quiet = false } = {}) {
   for (const [label, changed] of [
     ["src-tauri/Cargo.toml", syncCargoToml(version)],
     ["src-tauri/tauri.conf.json", syncTauriConfig(version)],
-    ["config/distribution.json", syncDistribution(version)],
   ]) {
     if (changed) {
       changedFiles.push(label);

@@ -442,6 +442,7 @@ fn read_distribution_manifest() -> Result<Value, String> {
             Ok(manifest)
         }) {
             Ok(manifest) => {
+                eprintln!("GitHub 배포 manifest 사용: {remote_url}");
                 if let Err(error) = cache_remote_distribution_manifest(&manifest) {
                     eprintln!("GitHub 배포 manifest 캐시 저장 실패: {error}");
                 }
@@ -450,7 +451,10 @@ fn read_distribution_manifest() -> Result<Value, String> {
             Err(error) => {
                 eprintln!("GitHub 배포 manifest 갱신 실패: {error}");
                 match read_cached_distribution_manifest() {
-                    Ok(manifest) => return Ok(manifest),
+                    Ok(manifest) => {
+                        eprintln!("캐시된 GitHub 배포 manifest 사용");
+                        return Ok(manifest);
+                    }
                     Err(cache_error) => {
                         eprintln!("캐시된 배포 manifest를 사용할 수 없습니다: {cache_error}");
                     }
@@ -459,6 +463,7 @@ fn read_distribution_manifest() -> Result<Value, String> {
         }
     }
 
+    eprintln!("내장 배포 manifest 사용");
     let manifest = read_embedded_json_file("config/distribution.json")?;
     validate_distribution_manifest(&manifest)?;
     Ok(manifest)

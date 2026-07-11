@@ -20,67 +20,6 @@ fn current_launcher_version() -> String {
         .expect("package.json version must be set")
 }
 
-fn release_tag_for_launcher_version(launcher_version: &str) -> String {
-    format!("v{launcher_version}")
-}
-
-fn release_download_url_with_tag(url: &str, release_tag: &str) -> String {
-    let marker = "/releases/download/";
-    let Some(tag_start) = url.find(marker).map(|index| index + marker.len()) else {
-        return url.to_string();
-    };
-    let Some(tag_length) = url[tag_start..].find('/') else {
-        return url.to_string();
-    };
-    let tag_end = tag_start + tag_length;
-
-    format!("{}{}{}", &url[..tag_start], release_tag, &url[tag_end..])
-}
-
-fn apply_package_version_to_distribution(distribution: &mut Value, launcher_version: &str) {
-    let release_tag = release_tag_for_launcher_version(launcher_version);
-
-    if let Some(distribution_object) = distribution.as_object_mut() {
-        distribution_object.insert(
-            "launcherVersion".to_string(),
-            Value::String(launcher_version.to_string()),
-        );
-    }
-
-    let Some(channels) = distribution.get_mut("channels").and_then(Value::as_object_mut) else {
-        return;
-    };
-
-    for channel in channels.values_mut().filter_map(Value::as_object_mut) {
-        if channel.contains_key("version") {
-            channel.insert(
-                "version".to_string(),
-                Value::String(launcher_version.to_string()),
-            );
-        }
-
-        let Some(release_archives) = channel
-            .get_mut("releaseArchives")
-            .and_then(Value::as_object_mut)
-        else {
-            continue;
-        };
-
-        for archive in release_archives.values_mut().filter_map(Value::as_object_mut) {
-            archive.insert("version".to_string(), Value::String(release_tag.clone()));
-
-            let updated_url = archive
-                .get("url")
-                .and_then(Value::as_str)
-                .map(|url| release_download_url_with_tag(url, &release_tag));
-
-            if let Some(updated_url) = updated_url {
-                archive.insert("url".to_string(), Value::String(updated_url));
-            }
-        }
-    }
-}
-
 fn installed_launcher_version(install_state: Option<&Value>) -> Option<&str> {
     install_state
         .and_then(|state| state.get("launcherVersion"))
@@ -238,9 +177,8 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     emit_launch_state(app, "서버 정보를 읽는 중", 0.14);
     let server_manifest = load_server_manifest()?;
     emit_launch_state(app, "GitHub 배포 정보를 확인하는 중", 0.18);
-    let mut distribution = read_distribution_manifest()?;
+    let distribution = read_distribution_manifest()?;
     let launcher_version = current_launcher_version();
-    apply_package_version_to_distribution(&mut distribution, &launcher_version);
     emit_launch_state(app, "사용자 설정을 읽는 중", 0.22);
     let mut user_config = load_or_create_user_config()?;
     emit_launch_state(app, "로그인 세션 갱신 확인", 0.24);
