@@ -1,0 +1,46 @@
+name: Sync release assets
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - config/distribution.json
+      - .github/workflows/sync-release-assets.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    name: Keep only distribution archives
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6f6f65b6e75b540449e92b4886f43607fa02 # v5
+
+      - name: Remove unexpected release assets and upload distribution
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          tag="$(jq -r .channels.stable.version config/distribution.json)"
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${tag}" --jq ".id")"
+
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+            --jq ".[] | [.id, .name] | @tsv" |
+          while IFS="$(printf "\\t")" read -r asset_id asset_name; do
+            case "${asset_name}" in
+              config.zip|mods.zip|shaders.zip|distribution.json)
+                ;;
+              *)
+                echo "Removing unexpected release asset: ${asset_name}"
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+                ;;
+            esac
+          done
+
+          gh release upload "${tag}" config/distribution.json \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
