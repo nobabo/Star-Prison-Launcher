@@ -239,7 +239,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     emit_launch_state(app, "서버 정보를 읽는 중", 0.14);
     let server_manifest = load_server_manifest()?;
     emit_launch_state(app, "GitHub 배포 정보를 확인하는 중", 0.18);
-    let mut distribution = read_distribution_manifest(&app_config)?;
+    let mut distribution = read_distribution_manifest()?;
     let launcher_version = current_launcher_version();
     apply_package_version_to_distribution(&mut distribution, &launcher_version);
     emit_launch_state(app, "사용자 설정을 읽는 중", 0.22);

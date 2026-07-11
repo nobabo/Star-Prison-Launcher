@@ -420,16 +420,23 @@ fn cache_remote_distribution_manifest(manifest: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn read_distribution_manifest(app_config: &Value) -> Result<Value, String> {
-    let remote_url = app_config
+fn embedded_distribution_manifest_url() -> Result<String, String> {
+    let embedded_app_config = read_embedded_json_file("config/app.config.json")?;
+    embedded_app_config
         .get("distributionManifest")
         .and_then(Value::as_object)
         .and_then(|manifest| manifest.get("url"))
         .and_then(Value::as_str)
         .map(str::trim)
-        .filter(|url| !url.is_empty());
+        .filter(|url| !url.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| "내장 app config에 distribution manifest URL이 없습니다.".to_string())
+}
 
-    if let Some(remote_url) = remote_url {
+fn read_distribution_manifest() -> Result<Value, String> {
+    let remote_url = embedded_distribution_manifest_url().ok();
+
+    if let Some(remote_url) = remote_url.as_deref() {
         match read_remote_json_once(remote_url).and_then(|manifest| {
             validate_distribution_manifest(&manifest)?;
             Ok(manifest)
@@ -452,7 +459,7 @@ fn read_distribution_manifest(app_config: &Value) -> Result<Value, String> {
         }
     }
 
-    let manifest = read_seeded_or_embedded_json_file("config/distribution.json")?;
+    let manifest = read_embedded_json_file("config/distribution.json")?;
     validate_distribution_manifest(&manifest)?;
     Ok(manifest)
 }
