@@ -100,7 +100,10 @@ fn release_archive_signature(descriptor: &Value) -> Value {
     })
 }
 
-fn validate_modpack_manifest(modpack_manifest: &Value) -> Result<(), String> {
+fn validate_modpack_manifest(
+    modpack_manifest: &Value,
+    require_file_urls: bool,
+) -> Result<(), String> {
     descriptor_size(modpack_manifest, "schemaVersion")?;
     descriptor_string(modpack_manifest, "id")?;
     descriptor_string(modpack_manifest, "version")?;
@@ -115,10 +118,6 @@ fn validate_modpack_manifest(modpack_manifest: &Value) -> Result<(), String> {
     for (index, file_entry) in files.iter().enumerate() {
         descriptor_string(file_entry, "path")
             .map_err(|error| format!("files[{index}]: {error}"))?;
-        descriptor_string(file_entry, "url").map_err(|error| format!("files[{index}]: {error}"))?;
-        descriptor_string(file_entry, "sha256")
-            .map_err(|error| format!("files[{index}]: {error}"))?;
-        descriptor_size(file_entry, "size").map_err(|error| format!("files[{index}]: {error}"))?;
 
         let kind = descriptor_string(file_entry, "kind")
             .map_err(|error| format!("files[{index}]: {error}"))?;
@@ -128,6 +127,19 @@ fn validate_modpack_manifest(modpack_manifest: &Value) -> Result<(), String> {
             "mod" | "config" | "config-seed" | "shaderpack" | "resourcepack"
         ) {
             return Err(format!("지원하지 않는 modpack 파일 kind입니다: {kind}"));
+        }
+
+        if require_file_urls {
+            descriptor_string(file_entry, "url")
+                .map_err(|error| format!("files[{index}]: {error}"))?;
+        }
+
+        let require_integrity = require_file_urls || !matches!(kind, "mod" | "shaderpack");
+        if require_integrity {
+            descriptor_string(file_entry, "sha256")
+                .map_err(|error| format!("files[{index}]: {error}"))?;
+            descriptor_size(file_entry, "size")
+                .map_err(|error| format!("files[{index}]: {error}"))?;
         }
 
         if file_entry
@@ -594,44 +606,51 @@ fn ensure_modpack_synchronized(
     };
     let launch_plan = launch_plan
         .ok_or_else(|| "modpack 동기화에는 launch-profile.json이 필요합니다.".to_string())?;
-    let manifest_cache_path = modpack_manifest_cache_path(data_directory, descriptor);
-
-    emit_launch_state(app, "모드 구성 확인", 0.89);
-    ensure_cached_artifact(
-        descriptor_string(descriptor, "url")?,
-        &manifest_cache_path,
-        Some(descriptor_string(descriptor, "sha256")?),
-        Some(descriptor_size(descriptor, "size")?),
-        "Modpack manifest",
-    )?;
-
-    let modpack_manifest = read_json_file(&manifest_cache_path)?;
-    validate_modpack_manifest(&modpack_manifest)?;
-    assert_compatible_modpack(server_manifest, launch_plan, descriptor, &modpack_manifest)?;
-
-    let files = modpack_manifest
+    let embedded_manifest = descriptor
         .get("files")
         .and_then(Value::as_array)
-        .map(Vec::as_slice)
-        .unwrap_or(&[]);
+        .is_some();
+
+    let (modpack_manifest, manifest_path) = if embedded_manifest {
+        (descriptor.clone(), None)
+    } else {
+        let manifest_cache_path = modpack_manifest_cache_path(data_directory, descriptor);
+        emit_launch_state(app, "모드 구성 확인", 0.89);
+        ensure_cached_artifact(
+            descriptor_string(descriptor, "url")?,
+            &manifest_cache_path,
+            Some(descriptor_string(descriptor, "sha256")?),
+            Some(descriptor_size(descriptor, "size")?),
+            "Modpack manifest",
+        )?;
+
+        (read_json_file(&manifest_cache_path)?, Some(manifest_cache_path))
+    };
+
+    validate_modpack_manifest(&modpack_manifest, !embedded_manifest)?;
+    assert_compatible_modpack(server_manifest, launch_plan, descriptor, &modpack_manifest)?;
+
     let mut changed_count = 0;
+    if !embedded_manifest {
+        let files = modpack_manifest
+            .get("files")
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .unwrap_or(&[]);
 
-    emit_launch_state(app, "모드 파일 다운로드", 0.90);
-    for file_entry in files {
-        let kind = descriptor_string(file_entry, "kind")?;
-        let seed_only = matches!(kind, "config" | "config-seed");
+        emit_launch_state(app, "모드 파일 다운로드", 0.90);
+        for file_entry in files {
+            let kind = descriptor_string(file_entry, "kind")?;
+            let seed_only = matches!(kind, "config" | "config-seed");
 
-        if ensure_managed_file_installed(data_directory, bundle_root, file_entry, seed_only)? {
-            changed_count += 1;
+            if ensure_managed_file_installed(data_directory, bundle_root, file_entry, seed_only)? {
+                changed_count += 1;
+            }
         }
     }
 
     emit_launch_state(app, "모드 구성 정리", 0.93);
     reconcile_mods_directory(bundle_root, &modpack_manifest)?;
 
-    Ok((
-        Some(modpack_manifest),
-        Some(manifest_cache_path),
-        changed_count,
-    ))
+    Ok((Some(modpack_manifest), manifest_path, changed_count))
 }

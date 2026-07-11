@@ -41,11 +41,575 @@
         }
       },
       "modpackManifest": {
+        "schemaVersion": 1,
+        "id": "star-prison",
         "version": "1.0.0",
-        "fileName": "modpack-manifest.json",
-        "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/modpack-manifest.json?sha=392c5369316a94f5477564fb509ef78a47118063522fc6642a9cfaec383fdb39",
-        "size": 37098,
-        "sha256": "392c5369316a94f5477564fb509ef78a47118063522fc6642a9cfaec383fdb39"
+        "minecraftVersion": "1.21.11",
+        "loader": "fabric",
+        "files": [
+          {
+            "path": "mods/AccurateBlockPlacement-Reborn-1.4.5+mc-1.21.9-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/anvianslib-fabric-1.21.10-1.4.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/appleskin-fabric-mc1.21.11-3.0.8.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/architectury-19.0.1-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/AsyncParticles-Lite-0.8.0-alpha+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/attackthroughgrass-fabric-2.1.0-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/axolotlbuckets-1.5.1+1.21.9.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/bettermounthud-1.2.6.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/boatiview-fabric-0.0.8-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/bookshelfinspector-fabric-2.3+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/chat_heads-1.2.4-fabric-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/chatsigninghider-fabric-1.21.11-1.0.5.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/chattytimestamps-1.0.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/cloth-config-21.11.153-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/continuity-3.0.1-beta.1+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/Controlling-fabric-1.21.11-29.0.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/Drip Sounds-0.5.2+1.21.10-Fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/entity_model_features-3.2.4-1.21.11-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/entity_texture_features_1.21.11-fabric-7.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/fabric-api-0.141.4+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/fabric-language-kotlin-1.13.12+kotlin.2.4.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/fallingleaves-2.0.3+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/ferritecore-8.2.0-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/fism+1.21.11-1.0.2.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/ForceLowerCaseCommandsFabric-1.2.1-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/ForgeConfigAPIPort-v21.11.1-mc1.21.11-Fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/fzzy_config-0.7.6+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/GPUBooster-1.2.5-1.21.11-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/Handful-1.0.0-fabric+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/held-item-info-1.9.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/iris-fabric-1.10.7+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/jei-1.21.11-fabric-27.15.0.47.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/keymappingmod-1.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/koreanpatch-fabric-1.9.6+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/lambdynamiclights-4.9.1+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/lithium-fabric-0.21.4+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/make_bubbles_pop-0.3.2-fabric-mc1.21.9-1.21.10.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/maptooltip-5.0.0+1.21.11-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/modmenu-17.0.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/morechathistory-1.3.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/moreculling-fabric-1.21.11-1.6.2.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/MouseTweaks-fabric-mc1.21.11-2.30.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/OverflowingBars-v21.11.0-mc1.21.11-Fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/particle_core-0.3.2+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/placeholder-api-2.8.2+1.21.10.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/prickle-fabric-1.21.11-21.11.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/PuzzlesLib-v21.11.13-mc1.21.11-Fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/reeses-sodium-options-fabric-2.2.2+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/rrlsFabric-5.1.15+mc.1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/Searchables-fabric-1.21.11-1.0.4.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/sodium-extra-fabric-0.9.1+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/sodium-extra-information-fabric-2.7.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/sodium-fabric-0.8.12+mc1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/sodium-shadowy-path-blocks-fabric-6.0.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/sodiumcoreshadersupport-1.5.0-mc1.21.11-sodium0.8.12-1.5.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/tlib-fabric-1.5.0-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/ToadLib-1.4.4-1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/visuality-0.7.13+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/VisualWorkbench-v21.11.1-mc1.21.11-Fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/voicechat-fabric-1.21.11-2.6.20.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/xaerominimap-fabric-1.21.11-26.2.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/xaeroworldmap-fabric-1.21.11-1.42.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/yet_another_config_lib_v3-3.8.2+1.21.11-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/zoomify-2.15.2+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "config/chattytimestamps.toml",
+            "kind": "config-seed",
+            "required": true,
+            "size": 212,
+            "sha256": "12de1aee799973f4636b7855a218eff6e97338b36b5bee304dfcbdaeb258da04"
+          },
+          {
+            "path": "config/effectual.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 584,
+            "sha256": "94c9cf29a1fad0eb68ea9d73cdab82b84c27f3e83c6d7e979e79ee55986c3501"
+          },
+          {
+            "path": "config/iris.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 294,
+            "sha256": "bdae8f5375420d2013cd03c80e6aa449635d3a84330db8dd6d2c9e1b11a09d11"
+          },
+          {
+            "path": "config/visuality.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 826,
+            "sha256": "42ec5efc8fb20b11977a4d297dfe98202cf5541deb944f414f44791c6b84243c"
+          },
+          {
+            "path": "config/voicechat/category-volumes.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 46,
+            "sha256": "94c1c4f70e5b995fbd71e86d4fa646030437fecae0685875b560a55fbd0d0e56"
+          },
+          {
+            "path": "config/voicechat/player-volumes.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 44,
+            "sha256": "0332261861a5ace96f503e85b0d48a8df74ea6c2f3545cd229543a6afb55ad96"
+          },
+          {
+            "path": "config/voicechat/translations.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 1182,
+            "sha256": "693643b1d393cbb3ea7f062afc4474fcd66e4036c4f8d7c056434979cbf512d1"
+          },
+          {
+            "path": "config/voicechat/voicechat-client.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 5062,
+            "sha256": "b12afecc9eef6c3a832200015c1550d49b5e20121c9f8d8e439604ec38b79dda"
+          },
+          {
+            "path": "config/voicechat/voicechat-server.properties",
+            "kind": "config-seed",
+            "required": true,
+            "size": 2839,
+            "sha256": "15d72b35f9c8b0c77e4400031d7470da2d9d7315a90e5787e6bce6395eabbb1c"
+          },
+          {
+            "path": "config/xaero/lib/client.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 26,
+            "sha256": "43ed9dbfa5b4d6f0f3d2e8c2ced17ad298164b22c68ff11d415257a39b074336"
+          },
+          {
+            "path": "config/xaero/lib/common.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 236,
+            "sha256": "98f698d96a6d21d830a455b4ad045b70516fa63c298021742d8499e7f0366cd2"
+          },
+          {
+            "path": "config/xaero/lib/profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 121,
+            "sha256": "34ae854b17d896d7cb853bdc28c27231a3947e91cb9f0991f372846ee3c2a907"
+          },
+          {
+            "path": "config/xaero/lib/server_profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 75,
+            "sha256": "d438aea41ca41e93697e059f523686935c0add482f6abe96b532bbf10c6ed80a"
+          },
+          {
+            "path": "config/xaero/minimap/client.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 235,
+            "sha256": "c0915eff5d1a7905cd1038d646eb9086fd1a29e2f637d53535e4da161de17b9f"
+          },
+          {
+            "path": "config/xaero/minimap/common.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 147,
+            "sha256": "2b49df024c03a369c62a303c72755e7fedeb4f4653ff53a12fd37bd83ccd4ed0"
+          },
+          {
+            "path": "config/xaero/minimap/default_radar_categories_client.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 5531,
+            "sha256": "b8ddf54611a9ab8c53177fc0d062321e9e731192b65b9e50d0fcb38a86a91696"
+          },
+          {
+            "path": "config/xaero/minimap/default_radar_categories_server.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 4597,
+            "sha256": "a4c652cafa7dea324e5f5cf3b1df46a84e54b6d4f877195857bce55a559c1cfd"
+          },
+          {
+            "path": "config/xaero/minimap/profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 3656,
+            "sha256": "83a7f6beef696307899025da36b25a444d69d83d1572d49def584eac90a8694b"
+          },
+          {
+            "path": "config/xaero/minimap/profiles/info_display_config/default.cfg.txt",
+            "kind": "config-seed",
+            "required": true,
+            "size": 684,
+            "sha256": "184e654fa1fc8ad09943c97c4e65ab78acb5b3cfca22417a831513d1b6d9bbc6"
+          },
+          {
+            "path": "config/xaero/minimap/server_profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 75,
+            "sha256": "d438aea41ca41e93697e059f523686935c0add482f6abe96b532bbf10c6ed80a"
+          },
+          {
+            "path": "config/xaero/world-map/client.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 466,
+            "sha256": "deece0fe0d29f2203a9699143a6209c451e91d7ecb799489c328b0d0fa31a90d"
+          },
+          {
+            "path": "config/xaero/world-map/common.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 141,
+            "sha256": "0c229eb0daf85bd09af51f21eeeb99497a3bd50a825d5ab1ca695fb21bf6cf9d"
+          },
+          {
+            "path": "config/xaero/world-map/profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 1379,
+            "sha256": "7b24c882801bcc7f0a8aedc625d419f661fa490fa0e9d5ebe39599a1ce2dcbd5"
+          },
+          {
+            "path": "config/xaero/world-map/server_profiles/default.cfg",
+            "kind": "config-seed",
+            "required": true,
+            "size": 75,
+            "sha256": "d438aea41ca41e93697e059f523686935c0add482f6abe96b532bbf10c6ed80a"
+          },
+          {
+            "path": "config/xaerohud.txt",
+            "kind": "config-seed",
+            "required": true,
+            "size": 121,
+            "sha256": "8d13c5f398016036aa4fdefb366ef3926d89f96ca104155bc9f6e5a7ec682ecd"
+          },
+          {
+            "path": "config/zoomify.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 709,
+            "sha256": "0f5af5a46c5b48d4c0316ceff284f36e64e95e5991d1f2f67d1c99be947ac62c"
+          },
+          {
+            "path": "shaderpacks/Boovlermentary 1.0.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/Boovlermentary 1.0.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/ComplementaryReimagined_r5.7.1.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/ComplementaryReimagined_r5.7.1.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/Lumina_Event_Horizon_v1.3.3.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/Lumina_Event_Horizon_v1.3.3.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/photon_v1.3a.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/photon_v1.3a.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/ShadolimettoShader.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/ShadolimettoShader.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/Sketchbound-V2.3.zip",
+            "kind": "shaderpack",
+            "required": true
+          },
+          {
+            "path": "shaderpacks/Sketchbound-V2.3.zip.txt",
+            "kind": "shaderpack",
+            "required": true
+          }
+        ]
       }
     },
     "prerelease": null
