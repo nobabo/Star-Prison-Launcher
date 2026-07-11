@@ -24,23 +24,23 @@
       },
       "releaseArchives": {
         "mods": {
-          "version": "v1.0.0",
+          "version": "1.0.0",
           "fileName": "mods.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/v1.0.0/mods.zip",
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip",
           "size": 44315533,
           "sha256": "c22ab8315233e9aa65fce26d9ace9152fd002baa29ac5df72a478f14b9812aa2"
         },
         "config": {
-          "version": "v1.0.0",
+          "version": "1.0.0",
           "fileName": "config.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/v1.0.0/config.zip",
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip",
           "size": 15977,
           "sha256": "988b4efb322e4b60534f5c6ef0dfbb282d53b27a8d17c8d6e877412209468501"
         },
         "shaderpacks": {
-          "version": "v1.0.0",
+          "version": "1.0.0",
           "fileName": "shaders.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/v1.0.0/shaders.zip",
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/shaders.zip",
           "size": 8558290,
           "sha256": "0dfc554ea31c2baa48a60795178b802b6275b4b9529fbb80b4d276340b0804c2"
         }
