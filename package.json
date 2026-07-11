@@ -18,13 +18,14 @@
     "wiki:dev:server": "pnpm --filter @star-prison/wiki-web dev:server",
     "wiki:build": "pnpm --filter @star-prison/wiki-web build",
     "wiki:test": "pnpm --filter @star-prison/wiki-web test",
-    "distribution:sync:release": "pnpm version:sync && node .github/scripts/sync-release-archives.mjs",
+    "distribution:sync:release": "pnpm version:sync && node .github/scripts/sync-modpack-manifest.mjs --upload && node .github/scripts/sync-release-archives.mjs",
     "lint": "pnpm lint:js && pnpm lint:css",
     "lint:js": "eslint .",
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
     "format": "prettier \"*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --write",
-    "format:check": "prettier \"*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --check"
+    "format:check": "prettier \"*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --check",
+    "distribution:sync:modpack": "node .github/scripts/sync-modpack-manifest.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

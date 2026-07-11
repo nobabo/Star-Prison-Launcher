@@ -72,7 +72,6 @@ fn app_config_payload(app_config: &Value) -> Value {
         "productName": app_config.get("productName").cloned().unwrap_or(Value::String("star-prison".to_string())),
         "supportUrl": app_config.get("supportUrl").cloned().unwrap_or(Value::String(String::new())),
         "allowPrerelease": app_config.get("allowPrerelease").cloned().unwrap_or(Value::Bool(false)),
-        "features": app_config.get("features").cloned().unwrap_or_else(|| json!({ "discordRichPresence": false })),
         "discordNotices": app_config.get("discordNotices").cloned().unwrap_or_else(|| json!({
             "enabled": false,
             "endpointUrl": "",

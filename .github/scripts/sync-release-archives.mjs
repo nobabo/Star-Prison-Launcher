@@ -12,7 +12,7 @@ const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const DISTRIBUTION_PATH = path.join(ROOT_DIR, "config", "distribution.json");
 const FILES_DIR = path.join(ROOT_DIR, ".files");
 const OUTPUT_DIR = path.join(ROOT_DIR, ".tmp", "release-archives");
-const REPOSITORY = "nobabo/star-prison";
+const REPOSITORY = "nobabo/Star-Prison-Launcher";
 const MAX_REDIRECTS = 8;
 const VERIFY_RETRIES = 12;
 const VERIFY_RETRY_DELAY_MS = 10_000;
@@ -22,14 +22,17 @@ const ARCHIVES = [
   {
     archiveKey: "mods",
     sourceDir: path.join(FILES_DIR, "mods"),
+    sourceArchive: path.join(FILES_DIR, "mods.zip"),
   },
   {
     archiveKey: "config",
     sourceDir: path.join(FILES_DIR, "config"),
+    sourceArchive: path.join(FILES_DIR, "config.zip"),
   },
   {
     archiveKey: "shaderpacks",
     sourceDir: path.join(FILES_DIR, "shaders"),
+    sourceArchive: path.join(FILES_DIR, "shaders.zip"),
   },
 ];
 
@@ -305,7 +308,12 @@ async function syncArchive(distribution, spec) {
   }
 
   const outputPath = path.join(OUTPUT_DIR, assetName(archive));
-  await createZip(spec.sourceDir, outputPath);
+  if (fs.existsSync(spec.sourceArchive)) {
+    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+    fs.copyFileSync(spec.sourceArchive, outputPath);
+  } else {
+    await createZip(spec.sourceDir, outputPath);
+  }
 
   const localDigest = digestFile(outputPath);
   let remoteDigest = null;
@@ -355,4 +363,9 @@ if (changed) {
   }
 } else {
   console.log("All release archives already match config/distribution.json.");
+}
+
+const stableVersion = distribution.channels?.stable?.version;
+if (typeof stableVersion === "string" && stableVersion.length > 0) {
+  run("gh", ["release", "upload", stableVersion, DISTRIBUTION_PATH, "--repo", REPOSITORY, "--clobber"]);
 }

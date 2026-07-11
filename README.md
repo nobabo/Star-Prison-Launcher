@@ -86,7 +86,7 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 - 다운로드 파일은 가능한 경우 size와 SHA-256으로 검증합니다.
 - zip 해제는 경로 탈출, 비정상 크기, 과도한 파일 수를 검사합니다.
 - 위험한 JVM/Game 인자는 저장 전 경고만 표시하고 사용자가 선택할 수 있게 둡니다.
-- `launcherCompanion` API는 기본 비활성입니다. 활성화하려면 `config/app.config.json`에서 `enabled`, `apiBaseUrl`, `bearerToken`이 모두 유효해야 하며, 이벤트 제출 시 로그인 상태가 필요합니다.
+- `launcherCompanion` API는 기본 비활성입니다. 활성화하려면 `config/app.config.json`에서 `enabled`, `apiBaseUrl`이 유효해야 하며 bearer token은 로컬 비추적 설정으로만 공급해야 하며, 이벤트 제출 시 로그인 상태가 필요합니다.
 
 ## 개발 명령어 요약
 

@@ -86,7 +86,7 @@ For launcher default changes, start with `config/client.config.json`, `config/ap
 - Downloaded files are verified by size and SHA-256 where available.
 - Zip extraction checks path traversal, abnormal sizes, and excessive file counts.
 - Risky JVM/Game args show warnings before saving; the user is not forced to remove them.
-- The `launcherCompanion` API is disabled by default. To enable it, `enabled`, `apiBaseUrl`, and `bearerToken` must be valid in `config/app.config.json`, and event submission requires a signed-in player.
+- The `launcherCompanion` API is disabled by default. To enable it, `enabled` and `apiBaseUrl` must be valid in `config/app.config.json`; any bearer token is supplied only through local untracked configuration, and event submission requires a signed-in player.
 
 ## Developer Commands
 

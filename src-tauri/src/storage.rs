@@ -558,8 +558,7 @@ fn default_user_config() -> Value {
             "maxRamMb": 8192,
             "gameResolution": "default",
             "extraJvmArgs": "",
-            "extraGameArgs": "",
-            "discordRichPresenceEnabled": false
+            "extraGameArgs": ""
         },
         "authSession": null,
         "lastDiagnostics": []

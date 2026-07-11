@@ -201,15 +201,14 @@ fn build_single_server_list_nbt(server_name: &str, server_address: &str) -> Resu
 fn ensure_default_server_list(
     game_directory: &Path,
     server_manifest: &Value,
-    app_config: &Value,
 ) -> Result<(), String> {
     let servers_dat_path = game_directory.join("servers.dat");
-    let server_address = app_config
-        .get("autoConnectServer")
+    let server_address = server_manifest
+        .get("address")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|address| !address.is_empty())
-        .ok_or_else(|| "config/app.config.json에 autoConnectServer 값이 없습니다.".to_string())?;
+        .ok_or_else(|| "config/server.manifest.json에 address 값이 없습니다.".to_string())?;
     let server_name = server_manifest
         .get("name")
         .and_then(Value::as_str)
@@ -363,7 +362,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     let quick_play_dir = game_directory.join("quickPlay");
     fs::create_dir_all(&quick_play_dir)
         .map_err(|error| io_error("Minecraft quickPlay 폴더를 만들지 못했습니다", &quick_play_dir, error))?;
-    ensure_default_server_list(&game_directory, &server_manifest, &app_config)?;
+    ensure_default_server_list(&game_directory, &server_manifest)?;
 
     if should_reinstall_launcher_content {
         show_launcher_content_reinstall_notice(installed_launcher_manifest_version, &launcher_version);
@@ -396,7 +395,6 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     let args = build_launch_arguments(
         &bundle_root,
         &server_manifest,
-        &app_config,
         &user_config,
         launch_plan_value,
     )?;

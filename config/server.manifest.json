@@ -1,5 +1,4 @@
 {
-    "id": "star-prison",
     "name": "별도소",
     "address": "gomsv.kr",
     "minecraftVersion": "1.21.11",
@@ -8,17 +7,10 @@
         "minimumRamMb": 4096,
         "recommendedRamMb": 8192
     },
-    "branding": {
-        "headline": "",
-        "accentColor": "#f4a6c8"
-    },
     "launch": {
-        "strategy": "full-bundle",
         "workingDirectory": "instances/star-prison",
-        "defaultLanguage": "ko_kr",
-        "startMaximized": false,
         "jvmArgs": [
-            "-Xms4G",
+            "-Xms2G",
             "-Xmx8G",
             "-XX:+UseG1GC",
             "-XX:+ParallelRefProcEnabled",

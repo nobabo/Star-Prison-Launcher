@@ -198,8 +198,7 @@ export function createSettingController({
                 maxRamMb: recommendedRamMb,
                 gameResolution: 'default',
                 extraJvmArgs: '',
-                extraGameArgs: '',
-                discordRichPresenceEnabled: false
+                extraGameArgs: ''
             },
             {
                 successTitle: '초기화 완료',

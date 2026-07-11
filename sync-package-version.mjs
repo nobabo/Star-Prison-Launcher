@@ -39,10 +39,6 @@ export function readPackageVersion() {
   return version;
 }
 
-export function releaseTagForPackageVersion(version) {
-  return `v${version}`;
-}
-
 function syncCargoToml(version) {
   const current = fs.readFileSync(CARGO_TOML_PATH, "utf8");
   const next = current.replace(
@@ -71,7 +67,7 @@ function syncTauriConfig(version) {
   return writeTextIfChanged(TAURI_CONFIG_PATH, next);
 }
 
-function releaseDownloadUrlWithTag(url, releaseTag) {
+function releaseDownloadUrlWithVersion(url, version) {
   const marker = "/releases/download/";
   const tagStart = url.indexOf(marker);
   if (tagStart < 0) {
@@ -85,11 +81,10 @@ function releaseDownloadUrlWithTag(url, releaseTag) {
   }
 
   const releaseTagEnd = releaseTagStart + releaseTagEndOffset;
-  return `${url.slice(0, releaseTagStart)}${releaseTag}${url.slice(releaseTagEnd)}`;
+  return `${url.slice(0, releaseTagStart)}${version}${url.slice(releaseTagEnd)}`;
 }
 
 function syncDistribution(version) {
-  const releaseTag = releaseTagForPackageVersion(version);
   const distribution = readJson(DISTRIBUTION_PATH);
   distribution.launcherVersion = version;
 
@@ -107,10 +102,10 @@ function syncDistribution(version) {
         continue;
       }
 
-      archive.version = releaseTag;
+      archive.version = version;
 
       if (typeof archive.url === "string") {
-        archive.url = releaseDownloadUrlWithTag(archive.url, releaseTag);
+        archive.url = releaseDownloadUrlWithVersion(archive.url, version);
       }
     }
   }
@@ -145,7 +140,6 @@ export function syncPackageVersion({ quiet = false } = {}) {
 
   return {
     version,
-    releaseTag: releaseTagForPackageVersion(version),
     changedFiles,
   };
 }

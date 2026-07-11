@@ -239,13 +239,13 @@ fn validate_setting_bool(key: &str, value: Value) -> Result<Value, String> {
     Ok(value)
 }
 
-fn validate_max_ram_mb(value: Value) -> Result<Value, String> {
+fn validate_max_ram_mb(value: Value, minimum_ram_mb: u64) -> Result<Value, String> {
     let Some(max_ram_mb) = value.as_u64() else {
         return Err("maxRamMb 설정은 숫자여야 합니다.".to_string());
     };
 
-    if !(1024..=131_072).contains(&max_ram_mb) {
-        return Err("maxRamMb 설정은 1024MB 이상 131072MB 이하이어야 합니다.".to_string());
+    if max_ram_mb < minimum_ram_mb || max_ram_mb > 131_072 {
+        return Err(format!("maxRamMb 설정은 {minimum_ram_mb}MB 이상 131072MB 이하이어야 합니다."));
     }
 
     Ok(Value::Number(max_ram_mb.into()))
@@ -269,6 +269,10 @@ fn validate_settings_patch(
     unsafe_acknowledged: bool,
 ) -> Result<Map<String, Value>, String> {
     let warnings = unsafe_settings_warnings(&patch);
+    let minimum_ram_mb = load_server_manifest()?
+        .pointer("/java/minimumRamMb")
+        .and_then(Value::as_u64)
+        .unwrap_or(1024);
 
     if !warnings.is_empty() && !unsafe_acknowledged {
         return Err(format!(
@@ -283,8 +287,8 @@ fn validate_settings_patch(
         let sanitized_value = match key.as_str() {
             "dataDirectory" => validate_setting_string(&key, value, 4096)?,
             "extraJvmArgs" | "extraGameArgs" => validate_setting_string(&key, value, 4096)?,
-            "allowPrerelease" | "discordRichPresenceEnabled" => validate_setting_bool(&key, value)?,
-            "maxRamMb" => validate_max_ram_mb(value)?,
+            "allowPrerelease" => validate_setting_bool(&key, value)?,
+            "maxRamMb" => validate_max_ram_mb(value, minimum_ram_mb)?,
             "gameResolution" => validate_game_resolution(value)?,
             _ => return Err(format!("허용되지 않은 설정 항목입니다: {key}")),
         };
@@ -584,9 +588,10 @@ fn validate_external_url(value: &str) -> Result<(), String> {
     }
 
     let app_config = load_app_config()?;
+    let server_manifest = load_server_manifest()?;
 
     if is_configured_support_url(&parsed_url, &app_config)
-        || is_configured_server_host(&parsed_url, &app_config)
+        || is_configured_server_host(&parsed_url, &server_manifest)
         || is_trusted_browser_host(&parsed_url)
     {
         return Ok(());
@@ -621,9 +626,9 @@ fn is_configured_support_url(parsed_url: &Url, app_config: &Value) -> bool {
     path_is_at_or_below(parsed_url.path(), configured_url.path())
 }
 
-fn is_configured_server_host(parsed_url: &Url, app_config: &Value) -> bool {
-    let Some(server_host) = app_config
-        .get("autoConnectServer")
+fn is_configured_server_host(parsed_url: &Url, server_manifest: &Value) -> bool {
+    let Some(server_host) = server_manifest
+        .get("address")
         .and_then(Value::as_str)
         .and_then(normalize_server_host)
     else {

@@ -78,7 +78,6 @@ fn manifest_working_directory(server_manifest: &Value) -> String {
 fn build_replacement_map(
     bundle_root: &Path,
     server_manifest: &Value,
-    app_config: &Value,
     user_config: &Value,
     launch_plan: Option<&Value>,
 ) -> Result<Map<String, Value>, String> {
@@ -180,12 +179,12 @@ fn build_replacement_map(
     variables.insert(
         "server_address".to_string(),
         Value::String(
-            app_config
-                .get("autoConnectServer")
+            server_manifest
+                .get("address")
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .filter(|address| !address.is_empty())
-                .ok_or_else(|| "config/app.config.json에 autoConnectServer 값이 없습니다.".to_string())?
+                .ok_or_else(|| "config/server.manifest.json에 address 값이 없습니다.".to_string())?
                 .to_string(),
         ),
     );
@@ -360,7 +359,6 @@ fn append_game_resolution_args(args: &mut Vec<String>, settings: &Map<String, Va
 fn build_launch_arguments(
     bundle_root: &Path,
     server_manifest: &Value,
-    app_config: &Value,
     user_config: &Value,
     launch_plan: Option<&Value>,
 ) -> Result<Vec<String>, String> {
@@ -373,7 +371,7 @@ fn build_launch_arguments(
         .and_then(Value::as_object)
         .ok_or_else(|| "서버 manifest에 launch 설정이 없습니다.".to_string())?;
     let variables =
-        build_replacement_map(bundle_root, server_manifest, app_config, user_config, launch_plan)?;
+        build_replacement_map(bundle_root, server_manifest, user_config, launch_plan)?;
     let max_ram_mb = settings
         .get("maxRamMb")
         .and_then(Value::as_u64)
