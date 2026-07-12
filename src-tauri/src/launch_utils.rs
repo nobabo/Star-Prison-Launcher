@@ -677,60 +677,135 @@ fn ensure_parent_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn partial_download_path(target_file_path: &Path) -> PathBuf {
+    let file_name = target_file_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .unwrap_or("download");
+    target_file_path.with_file_name(format!("{file_name}.partial"))
+}
+
 fn download_file_once(
     resource_url: &str,
-    temp_file_path: &Path,
+    partial_file_path: &Path,
     maximum_size: u64,
 ) -> Result<(), String> {
+    ensure_parent_dir(partial_file_path)?;
     let requested_url = validate_download_url(resource_url)?;
     let client = reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(15))
         .timeout(Duration::from_secs(120))
         .build()
         .map_err(|error| format!("다운로드 클라이언트를 만들지 못했습니다: {error}"))?;
-    let response = client
-        .get(requested_url)
-        .send()
-        .map_err(|error| format!("다운로드 요청 실패 ({resource_url}): {error}"))?;
+
+    let mut existing_size = fs::metadata(partial_file_path)
+        .ok()
+        .filter(|metadata| metadata.is_file())
+        .map(|metadata| metadata.len())
+        .unwrap_or(0);
+    if existing_size > maximum_size {
+        remove_path_if_exists(partial_file_path)?;
+        existing_size = 0;
+    }
+
+    let send_request = |range_start: Option<u64>| {
+        let mut request = client.get(requested_url.clone());
+        if let Some(range_start) = range_start {
+            request = request.header(
+                reqwest::header::RANGE,
+                format!("bytes={range_start}-"),
+            );
+        }
+        request
+            .send()
+            .map_err(|error| format!("다운로드 요청 실패 ({resource_url}): {error}"))
+    };
+
+    let mut response = send_request((existing_size > 0).then_some(existing_size))?;
+    if existing_size > 0
+        && response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE
+    {
+        remove_path_if_exists(partial_file_path)?;
+        existing_size = 0;
+        response = send_request(None)?;
+    }
+
     let final_url = response.url().clone();
     validate_download_url(final_url.as_str()).map_err(|error| {
         format!("다운로드 redirect URL 검증 실패 ({resource_url} -> {final_url}): {error}")
     })?;
+
+    let status = response.status();
+    let append = existing_size > 0 && status == reqwest::StatusCode::PARTIAL_CONTENT;
+    if existing_size > 0 && !append {
+        existing_size = 0;
+    }
+
+    if append {
+        let expected_prefix = format!("bytes {existing_size}-");
+        let content_range_matches = response
+            .headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|value| value.to_str().ok())
+            .is_some_and(|value| value.starts_with(&expected_prefix));
+        if !content_range_matches {
+            remove_path_if_exists(partial_file_path)?;
+            return Err(format!(
+                "다운로드 이어받기 응답 범위가 올바르지 않습니다 ({resource_url})"
+            ));
+        }
+    }
+
     let response = response
         .error_for_status()
         .map_err(|error| format!("다운로드 응답 오류 ({resource_url}): {error}"))?;
     if response
         .content_length()
-        .is_some_and(|content_length| content_length > maximum_size)
+        .is_some_and(|content_length| existing_size.saturating_add(content_length) > maximum_size)
     {
         return Err(format!(
             "다운로드 응답 크기가 제한을 초과했습니다 ({resource_url}): {}/{} bytes",
-            response.content_length().unwrap_or_default(),
+            existing_size.saturating_add(response.content_length().unwrap_or_default()),
             maximum_size
         ));
     }
-    let mut temp_file = File::create(temp_file_path)
-        .map_err(|error| io_error("다운로드 임시 파일을 만들지 못했습니다", temp_file_path, error))?;
-    let written_size = io::copy(&mut response.take(maximum_size.saturating_add(1)), &mut temp_file)
-        .map_err(|error| {
-            contextual_error(
-                &format!(
-                    "다운로드 저장 실패 (url: {resource_url}, temp: {})",
-                    display_path(temp_file_path)
-                ),
-                error,
-            )
-        })?;
 
-    if written_size > maximum_size {
+    let mut options = OpenOptions::new();
+    options.create(true).write(true);
+    if append {
+        options.append(true);
+    } else {
+        options.truncate(true);
+    }
+    let mut partial_file = options
+        .open(partial_file_path)
+        .map_err(|error| io_error("다운로드 임시 파일을 열지 못했습니다", partial_file_path, error))?;
+    let remaining_size = maximum_size.saturating_sub(existing_size);
+    let written_size = io::copy(
+        &mut response.take(remaining_size.saturating_add(1)),
+        &mut partial_file,
+    )
+    .map_err(|error| {
+        contextual_error(
+            &format!(
+                "다운로드 저장 실패 (url: {resource_url}, partial: {})",
+                display_path(partial_file_path)
+            ),
+            error,
+        )
+    })?;
+    let total_size = existing_size.saturating_add(written_size);
+
+    if total_size > maximum_size {
+        remove_path_if_exists(partial_file_path)?;
         return Err(format!(
-            "다운로드 데이터가 크기 제한을 초과했습니다 ({resource_url}): {written_size}/{maximum_size} bytes"
+            "다운로드 데이터가 크기 제한을 초과했습니다 ({resource_url}): {total_size}/{maximum_size} bytes"
         ));
     }
 
-    temp_file
+    partial_file
         .sync_all()
-        .map_err(|error| io_error("다운로드 임시 파일을 동기화하지 못했습니다", temp_file_path, error))?;
+        .map_err(|error| io_error("다운로드 임시 파일을 동기화하지 못했습니다", partial_file_path, error))?;
 
     Ok(())
 }
@@ -741,47 +816,88 @@ fn copy_or_download_file(
     expected_size: Option<u64>,
 ) -> Result<(), String> {
     ensure_parent_dir(target_file_path)?;
-    let temp_file_path = target_file_path.with_extension(format!("partial-{}", now_ms()));
-    remove_path_if_exists(&temp_file_path)?;
-
+    let partial_file_path = partial_download_path(target_file_path);
     validate_download_url(resource_url)?;
+
+    if let (Some(expected_size), Ok(metadata)) =
+        (expected_size, fs::metadata(&partial_file_path))
+    {
+        if metadata.is_file() && metadata.len() == expected_size {
+            if target_file_path.exists() {
+                remove_path_if_exists(target_file_path)?;
+            }
+            fs::rename(&partial_file_path, target_file_path).map_err(|error| {
+                contextual_error(
+                    &format!(
+                        "완료된 다운로드 임시 파일을 적용하지 못했습니다 (from: {}, to: {})",
+                        display_path(&partial_file_path),
+                        display_path(target_file_path)
+                    ),
+                    error,
+                )
+            })?;
+            return Ok(());
+        }
+
+        if metadata.len() > expected_size {
+            remove_path_if_exists(&partial_file_path)?;
+        }
+    }
 
     let mut last_error = None;
     for attempt in 1..=3 {
-        remove_path_if_exists(&temp_file_path)?;
-
         match download_file_once(
             resource_url,
-            &temp_file_path,
+            &partial_file_path,
             expected_size.unwrap_or(MAX_UNSIZED_DOWNLOAD_BYTES),
         ) {
             Ok(()) => {
-                last_error = None;
-                break;
+                let downloaded_size = fs::metadata(&partial_file_path)
+                    .map_err(|error| {
+                        io_error(
+                            "다운로드 임시 파일 정보를 읽지 못했습니다",
+                            &partial_file_path,
+                            error,
+                        )
+                    })?
+                    .len();
+
+                if expected_size.is_none_or(|expected| downloaded_size == expected) {
+                    last_error = None;
+                    break;
+                }
+
+                last_error = Some(format!(
+                    "다운로드가 아직 완료되지 않았습니다 ({resource_url}): {downloaded_size}/{} bytes",
+                    expected_size.unwrap_or_default()
+                ));
             }
             Err(error) => {
                 last_error = Some(error);
-                if attempt < 3 {
-                    std::thread::sleep(Duration::from_millis(500 * attempt));
-                }
             }
+        }
+
+        if attempt < 3 {
+            std::thread::sleep(Duration::from_millis(500 * attempt));
         }
     }
 
     if let Some(error) = last_error {
-        remove_path_if_exists(&temp_file_path)?;
-        return Err(error);
+        return Err(format!(
+            "{error} 이어받기 파일을 보존했습니다: {}",
+            display_path(&partial_file_path)
+        ));
     }
 
     if target_file_path.exists() {
         remove_path_if_exists(target_file_path)?;
     }
 
-    fs::rename(&temp_file_path, target_file_path).map_err(|error| {
+    fs::rename(&partial_file_path, target_file_path).map_err(|error| {
         contextual_error(
             &format!(
                 "다운로드 임시 파일을 대상 위치로 이동하지 못했습니다 (from: {}, to: {})",
-                display_path(&temp_file_path),
+                display_path(&partial_file_path),
                 display_path(target_file_path)
             ),
             error,
@@ -861,4 +977,42 @@ fn ensure_cached_artifact_with_checksum(
     }
 
     Ok(target_path.to_path_buf())
+}
+
+#[cfg(test)]
+mod launch_download_resume_tests {
+    use super::*;
+
+    #[test]
+    fn partial_download_path_preserves_original_file_name() {
+        let target = Path::new("downloads").join("mods.zip");
+        assert_eq!(
+            partial_download_path(&target),
+            Path::new("downloads").join("mods.zip.partial")
+        );
+    }
+
+    #[test]
+    fn completed_partial_file_is_promoted_without_redownload() {
+        let directory = std::env::temp_dir().join(format!(
+            "star-prison-download-test-{}-{}",
+            std::process::id(),
+            now_ms()
+        ));
+        fs::create_dir_all(&directory).expect("test directory should be created");
+        let target = directory.join("artifact.bin");
+        let partial = partial_download_path(&target);
+        fs::write(&partial, b"done").expect("partial file should be written");
+
+        copy_or_download_file(
+            "https://github.com/nobabo/Star-Prison-Launcher",
+            &target,
+            Some(4),
+        )
+        .expect("completed partial should be promoted");
+
+        assert_eq!(fs::read(&target).expect("target should exist"), b"done");
+        assert!(!partial.exists());
+        fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
 }

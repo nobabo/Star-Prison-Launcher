@@ -856,6 +856,7 @@ fn ensure_fabric_remote_client_installed(
     server_manifest: &Value,
     channel: &Value,
     client_bundle: &Value,
+    install_checkpoint: &mut Value,
 ) -> Result<PathBuf, String> {
     let minecraft_version = descriptor_string(server_manifest, "minecraftVersion")?;
     let loader_version = match client_bundle
@@ -870,13 +871,45 @@ fn ensure_fabric_remote_client_installed(
         "https://meta.fabricmc.net/v2/versions/loader/{minecraft_version}/{loader_version}/profile/json"
     );
 
-    emit_launch_state(app, "Fabric 실행 정보 다운로드", 0.58);
-    let version_json = minecraft_version_metadata(minecraft_version)?;
-    let fabric_profile = read_remote_json(&fabric_profile_url)?;
     let staged_path = profile_staged_path(data_directory, channel);
-    remove_path_if_exists(&staged_path)?;
     fs::create_dir_all(&staged_path)
         .map_err(|error| io_error("Fabric staged 폴더를 만들지 못했습니다", &staged_path, error))?;
+
+    emit_launch_state(app, "Minecraft 설치 1/5: 실행 정보 확인", 0.58);
+    let metadata_root = data_directory
+        .join("downloads")
+        .join("minecraft-metadata")
+        .join(minecraft_version);
+    let version_json_path = metadata_root.join("version.json");
+    let version_json = match read_json_file(&version_json_path) {
+        Ok(value)
+            if value.get("id").and_then(Value::as_str) == Some(minecraft_version) =>
+        {
+            value
+        }
+        _ => {
+            let value = minecraft_version_metadata(minecraft_version)?;
+            write_json_state_atomic(&version_json_path, &value, "Minecraft version metadata")?;
+            value
+        }
+    };
+    let fabric_profile_path = metadata_root.join(format!("fabric-{loader_version}.json"));
+    let fabric_profile = match read_json_file(&fabric_profile_path) {
+        Ok(value)
+            if value
+                .get("mainClass")
+                .and_then(Value::as_str)
+                .is_some() =>
+        {
+            value
+        }
+        _ => {
+            let value = read_remote_json(&fabric_profile_url)?;
+            write_json_state_atomic(&fabric_profile_path, &value, "Fabric profile metadata")?;
+            value
+        }
+    };
+    mark_install_checkpoint(install_checkpoint, MINECRAFT_INSTALL_STAGES[0])?;
 
     let game_root = staged_path.clone();
     let libraries_root = game_root.join("libraries");
@@ -891,7 +924,7 @@ fn ensure_fabric_remote_client_installed(
         .map_err(|error| io_error("Minecraft versions 폴더를 만들지 못했습니다", &versions_root, error))?;
     apply_client_config_options(&game_root)?;
 
-    emit_launch_state(app, "Minecraft 라이브러리 다운로드", 0.64);
+    emit_launch_state(app, "Minecraft 설치 2/5: 기본 라이브러리", 0.64);
     let mut classpath = Vec::new();
     ensure_minecraft_libraries_parallel(
         &libraries_root,
@@ -903,8 +936,9 @@ fn ensure_fabric_remote_client_installed(
             .unwrap_or(&[]),
         &mut classpath,
     )?;
+    mark_install_checkpoint(install_checkpoint, MINECRAFT_INSTALL_STAGES[1])?;
 
-    emit_launch_state(app, "Fabric 라이브러리 다운로드", 0.70);
+    emit_launch_state(app, "Minecraft 설치 3/5: Fabric 라이브러리", 0.70);
     ensure_maven_libraries_parallel(
         &libraries_root,
         fabric_profile
@@ -914,11 +948,13 @@ fn ensure_fabric_remote_client_installed(
             .unwrap_or(&[]),
         &mut classpath,
     )?;
+    mark_install_checkpoint(install_checkpoint, MINECRAFT_INSTALL_STAGES[2])?;
 
     let client_download = version_json
         .pointer("/downloads/client")
         .ok_or_else(|| "Minecraft client 다운로드 정보가 없습니다.".to_string())?;
     let client_jar_relative = format!("versions/{minecraft_version}/{minecraft_version}.jar");
+    emit_launch_state(app, "Minecraft 설치 4/5: 클라이언트 파일", 0.73);
     ensure_remote_artifact(
         descriptor_string(client_download, "url")?,
         &staged_path.join(&client_jar_relative),
@@ -928,9 +964,11 @@ fn ensure_fabric_remote_client_installed(
     )
     .map_err(|error| format!("Minecraft client jar 설치 실패: {error}"))?;
     classpath.push(client_jar_relative);
+    mark_install_checkpoint(install_checkpoint, MINECRAFT_INSTALL_STAGES[3])?;
 
-    emit_launch_state(app, "Minecraft 리소스 다운로드", 0.76);
+    emit_launch_state(app, "Minecraft 설치 5/5: 리소스 파일", 0.76);
     let asset_index_name = ensure_minecraft_assets(app, &assets_root, &version_json)?;
+    mark_install_checkpoint(install_checkpoint, MINECRAFT_INSTALL_STAGES[4])?;
     let version_id = fabric_profile
         .get("id")
         .and_then(Value::as_str)
@@ -1176,12 +1214,16 @@ fn ensure_client_bundle_installed(
     server_manifest: &Value,
     channel: &Value,
     force_install: bool,
+    install_checkpoint: &mut Value,
 ) -> Result<PathBuf, String> {
     emit_launch_state(app, "게임 파일 확인", 0.54);
     migrate_legacy_client_profile_if_needed(data_directory, server_manifest)?;
 
     if !force_install {
         if let Ok(current_path) = verify_profile_installation() {
+            for stage in MINECRAFT_INSTALL_STAGES {
+                mark_install_checkpoint(install_checkpoint, stage)?;
+            }
             remove_path_if_exists(&profile_staged_root_path(data_directory))?;
             cleanup_empty_launcher_cache_dirs(data_directory);
             return Ok(current_path);
@@ -1199,6 +1241,7 @@ fn ensure_client_bundle_installed(
             server_manifest,
             channel,
             client_bundle,
+            install_checkpoint,
         );
     }
 

@@ -54,6 +54,22 @@ fn client_install_signature(server_manifest: &Value, channel: &Value) -> Result<
     }))
 }
 
+fn install_checkpoint_identity(
+    channel_name: &str,
+    launcher_version: &str,
+    channel: &Value,
+    runtime_signature: &Value,
+    client_signature: &Value,
+) -> Value {
+    json!({
+        "channel": channel_name,
+        "launcherVersion": launcher_version,
+        "distributionVersion": channel.get("version").cloned().unwrap_or(Value::Null),
+        "runtimeSignature": runtime_signature,
+        "clientSignature": client_signature
+    })
+}
+
 fn install_signature_matches(
     install_state: Option<&Value>,
     field: &str,
@@ -256,16 +272,29 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
         .ok_or_else(|| "배포 manifest에 Java runtime 정보가 없습니다.".to_string())?;
     let runtime_signature = runtime_install_signature(runtime);
     let client_signature = client_install_signature(&server_manifest, channel)?;
+    let checkpoint_identity = install_checkpoint_identity(
+        channel_name,
+        &launcher_version,
+        channel,
+        &runtime_signature,
+        &client_signature,
+    );
+    let (mut install_checkpoint, checkpoint_reset) =
+        load_or_create_install_checkpoint(&checkpoint_identity)?;
+    if checkpoint_reset {
+        remove_path_if_exists(&profile_staged_root_path(&data_directory))?;
+    }
+
     let force_runtime_install = !install_signature_matches(
         install_state.as_ref(),
         "runtimeSignature",
         &runtime_signature,
-    );
+    ) && !install_checkpoint_completed(&install_checkpoint, "runtime");
     let force_client_install = !install_signature_matches(
         install_state.as_ref(),
         "clientSignature",
         &client_signature,
-    );
+    ) && !install_checkpoint_completed(&install_checkpoint, "client");
     let java_executable = ensure_runtime_installed(
         app,
         &data_directory,
@@ -278,6 +307,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
             display_path(&runtime_executable_path(&data_directory, runtime))
         )
     })?;
+    mark_install_checkpoint(&mut install_checkpoint, "runtime")?;
 
     let profile_root = ensure_client_bundle_installed(
         app,
@@ -285,7 +315,9 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
         &server_manifest,
         channel,
         force_client_install,
+        &mut install_checkpoint,
     )?;
+    mark_install_checkpoint(&mut install_checkpoint, "client")?;
 
     emit_launch_state(app, "실행 계획 파일 확인", 0.50);
     let launch_plan = load_instance_launch_plan(&profile_root);
@@ -317,6 +349,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
         &bundle_root,
         channel.get("releaseArchives"),
         force_release_archive_keys,
+        &mut install_checkpoint,
     )?;
 
     let (modpack_manifest, modpack_manifest_path, _modpack_changed_count) =
@@ -328,6 +361,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
             launch_plan_value,
             channel.get("modpackManifest"),
         )?;
+    mark_install_checkpoint(&mut install_checkpoint, "modpack")?;
 
     emit_launch_state(app, "실행 인자값 확인", 0.62);
     let args = build_launch_arguments(
@@ -406,6 +440,7 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
         }),
     )?;
     save_user_config(&user_config)?;
+    mark_install_checkpoint(&mut install_checkpoint, "complete")?;
 
     emit_launch_state(app, "자바 실행 명령 구성", 0.86);
     let process_log_path = minecraft_process_log_path()?;

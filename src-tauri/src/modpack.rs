@@ -372,6 +372,7 @@ fn ensure_release_archives_synchronized(
     bundle_root: &Path,
     archives: Option<&Value>,
     force_archive_keys: &[&str],
+    install_checkpoint: &mut Value,
 ) -> Result<usize, String> {
     let Some(archives) = archives.and_then(Value::as_object) else {
         return Ok(0);
@@ -394,6 +395,7 @@ fn ensure_release_archives_synchronized(
     )? {
         changed_count += 1;
     }
+    mark_install_checkpoint(install_checkpoint, "mods")?;
 
     if ensure_release_archive_installed(
         app,
@@ -411,6 +413,7 @@ fn ensure_release_archives_synchronized(
     )? {
         changed_count += 1;
     }
+    mark_install_checkpoint(install_checkpoint, "config")?;
 
     if ensure_release_archive_installed(
         app,
@@ -428,6 +431,7 @@ fn ensure_release_archives_synchronized(
     )? {
         changed_count += 1;
     }
+    mark_install_checkpoint(install_checkpoint, "shaders")?;
 
     Ok(changed_count)
 }
