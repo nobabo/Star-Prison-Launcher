@@ -1,10 +1,12 @@
-fn minimize_launcher_window(app: &tauri::AppHandle) {
+use crate::*;
+
+pub(crate) fn minimize_launcher_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.minimize();
     }
 }
 
-fn focus_launcher_window(app: &tauri::AppHandle) {
+pub(crate) fn focus_launcher_window(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.unminimize();
         let _ = window.show();
@@ -14,7 +16,7 @@ fn focus_launcher_window(app: &tauri::AppHandle) {
     emit_window_state(app);
 }
 
-fn selected_distribution_channel<'a>(
+pub(crate) fn selected_distribution_channel<'a>(
     distribution: &'a Value,
     user_config: &Value,
     app_config: &Value,
@@ -48,7 +50,7 @@ fn selected_distribution_channel<'a>(
     Ok((selected_name, channel))
 }
 
-fn load_instance_launch_plan(instance_dir: &Path) -> Option<(Value, PathBuf)> {
+pub(crate) fn load_instance_launch_plan(instance_dir: &Path) -> Option<(Value, PathBuf)> {
     for file_name in [
         "launch-profile.json",
         "launcher-launch.json",
@@ -67,7 +69,7 @@ fn load_instance_launch_plan(instance_dir: &Path) -> Option<(Value, PathBuf)> {
     None
 }
 
-fn manifest_working_directory(server_manifest: &Value) -> String {
+pub(crate) fn manifest_working_directory(server_manifest: &Value) -> String {
     server_manifest
         .pointer("/launch/workingDirectory")
         .and_then(Value::as_str)
@@ -75,7 +77,7 @@ fn manifest_working_directory(server_manifest: &Value) -> String {
         .to_string()
 }
 
-fn build_replacement_map(
+pub(crate) fn build_replacement_map(
     bundle_root: &Path,
     server_manifest: &Value,
     user_config: &Value,
@@ -207,7 +209,7 @@ fn build_replacement_map(
     Ok(variables)
 }
 
-fn expand_argument(value: &str, variables: &Map<String, Value>) -> String {
+pub(crate) fn expand_argument(value: &str, variables: &Map<String, Value>) -> String {
     let mut expanded = value.to_string();
 
     for (key, replacement) in variables {
@@ -221,7 +223,7 @@ fn expand_argument(value: &str, variables: &Map<String, Value>) -> String {
     expanded
 }
 
-fn expand_arguments(values: Vec<String>, variables: &Map<String, Value>) -> Vec<String> {
+pub(crate) fn expand_arguments(values: Vec<String>, variables: &Map<String, Value>) -> Vec<String> {
     values
         .iter()
         .map(|value| expand_argument(value, variables))
@@ -229,7 +231,7 @@ fn expand_arguments(values: Vec<String>, variables: &Map<String, Value>) -> Vec<
         .collect()
 }
 
-fn classpath_from_plan(
+pub(crate) fn classpath_from_plan(
     plan: &Value,
     bundle_root: &Path,
     variables: &Map<String, Value>,
@@ -268,7 +270,7 @@ fn classpath_from_plan(
     )
 }
 
-fn native_classpath_entries_for(library_path: &Path) -> Vec<PathBuf> {
+pub(crate) fn native_classpath_entries_for(library_path: &Path) -> Vec<PathBuf> {
     if !cfg!(windows) {
         return Vec::new();
     }
@@ -290,7 +292,7 @@ fn native_classpath_entries_for(library_path: &Path) -> Vec<PathBuf> {
     }
 }
 
-fn session_required_string(user_config: &Value, field: &str) -> Result<String, String> {
+pub(crate) fn session_required_string(user_config: &Value, field: &str) -> Result<String, String> {
     user_config
         .get("authSession")
         .and_then(Value::as_object)
@@ -302,11 +304,11 @@ fn session_required_string(user_config: &Value, field: &str) -> Result<String, S
         .ok_or_else(|| format!("저장된 Minecraft 세션에 {field} 값이 없습니다."))
 }
 
-fn is_managed_auth_arg(arg: &str) -> bool {
+pub(crate) fn is_managed_auth_arg(arg: &str) -> bool {
     arg == "--accessToken" || arg.starts_with("--accessToken=")
 }
 
-fn remove_managed_auth_args(args: Vec<String>) -> Vec<String> {
+pub(crate) fn remove_managed_auth_args(args: Vec<String>) -> Vec<String> {
     let mut sanitized = Vec::with_capacity(args.len());
     let mut index = 0;
 
@@ -329,7 +331,10 @@ fn remove_managed_auth_args(args: Vec<String>) -> Vec<String> {
     sanitized
 }
 
-fn append_managed_auth_args(args: &mut Vec<String>, user_config: &Value) -> Result<(), String> {
+pub(crate) fn append_managed_auth_args(
+    args: &mut Vec<String>,
+    user_config: &Value,
+) -> Result<(), String> {
     let access_token = session_required_string(user_config, "accessToken")?;
 
     args.push("--accessToken".to_string());
@@ -337,7 +342,7 @@ fn append_managed_auth_args(args: &mut Vec<String>, user_config: &Value) -> Resu
     Ok(())
 }
 
-fn selected_game_resolution(settings: &Map<String, Value>) -> Option<(&str, &str)> {
+pub(crate) fn selected_game_resolution(settings: &Map<String, Value>) -> Option<(&str, &str)> {
     let resolution = settings.get("gameResolution")?.as_str()?.trim();
 
     if !GAME_RESOLUTION_OPTIONS.contains(&resolution) {
@@ -347,7 +352,7 @@ fn selected_game_resolution(settings: &Map<String, Value>) -> Option<(&str, &str
     resolution.split_once('x')
 }
 
-fn append_game_resolution_args(args: &mut Vec<String>, settings: &Map<String, Value>) {
+pub(crate) fn append_game_resolution_args(args: &mut Vec<String>, settings: &Map<String, Value>) {
     if let Some((width, height)) = selected_game_resolution(settings) {
         args.push("--width".to_string());
         args.push(width.to_string());
@@ -356,7 +361,7 @@ fn append_game_resolution_args(args: &mut Vec<String>, settings: &Map<String, Va
     }
 }
 
-fn build_launch_arguments(
+pub(crate) fn build_launch_arguments(
     bundle_root: &Path,
     server_manifest: &Value,
     user_config: &Value,
@@ -370,8 +375,7 @@ fn build_launch_arguments(
         .get("launch")
         .and_then(Value::as_object)
         .ok_or_else(|| "서버 manifest에 launch 설정이 없습니다.".to_string())?;
-    let variables =
-        build_replacement_map(bundle_root, server_manifest, user_config, launch_plan)?;
+    let variables = build_replacement_map(bundle_root, server_manifest, user_config, launch_plan)?;
     let max_ram_mb = settings
         .get("maxRamMb")
         .and_then(Value::as_u64)
@@ -464,7 +468,9 @@ fn build_launch_arguments(
         ));
     }
 
-    args.extend(remove_managed_auth_args(split_user_args(settings.get("extraGameArgs"))));
+    args.extend(remove_managed_auth_args(split_user_args(
+        settings.get("extraGameArgs"),
+    )));
     append_game_resolution_args(&mut args, settings);
 
     Ok(args)

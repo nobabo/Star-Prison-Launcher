@@ -1,4 +1,6 @@
-fn monitor_game_process(
+use crate::*;
+
+pub(crate) fn monitor_game_process(
     app: tauri::AppHandle,
     mut child: Child,
     process_id: u32,
@@ -37,12 +39,14 @@ fn monitor_game_process(
 }
 
 #[cfg(windows)]
-fn terminate_process_tree(process_id: u32) -> Result<(), String> {
+pub(crate) fn terminate_process_tree(process_id: u32) -> Result<(), String> {
     let pid = process_id.to_string();
     let output = Command::new("taskkill.exe")
         .args(["/PID", &pid, "/T", "/F"])
         .output()
-        .map_err(|error| contextual_error("Minecraft 프로세스 종료 명령을 실행하지 못했습니다", error))?;
+        .map_err(|error| {
+            contextual_error("Minecraft 프로세스 종료 명령을 실행하지 못했습니다", error)
+        })?;
 
     if output.status.success() {
         return Ok(());
@@ -60,12 +64,14 @@ fn terminate_process_tree(process_id: u32) -> Result<(), String> {
 }
 
 #[cfg(not(windows))]
-fn terminate_process_tree(process_id: u32) -> Result<(), String> {
+pub(crate) fn terminate_process_tree(process_id: u32) -> Result<(), String> {
     let pid = process_id.to_string();
     let output = Command::new("kill")
         .args(["-TERM", &pid])
         .output()
-        .map_err(|error| contextual_error("Minecraft 프로세스 종료 명령을 실행하지 못했습니다", error))?;
+        .map_err(|error| {
+            contextual_error("Minecraft 프로세스 종료 명령을 실행하지 못했습니다", error)
+        })?;
 
     if output.status.success() {
         Ok(())
@@ -79,7 +85,7 @@ fn terminate_process_tree(process_id: u32) -> Result<(), String> {
     }
 }
 
-fn terminate_launched_minecraft() -> Result<Value, String> {
+pub(crate) fn terminate_launched_minecraft() -> Result<Value, String> {
     let process_id = GAME_PROCESS_ID.load(Ordering::SeqCst);
 
     if process_id == 0 {

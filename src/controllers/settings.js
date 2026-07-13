@@ -1,34 +1,5 @@
 import { el, fragment } from '../components/dom.js'
 
-const RISKY_JVM_ARG_PREFIXES = [
-    '-javaagent',
-    '-agentlib',
-    '-agentpath',
-    '-Xbootclasspath',
-    '-Djava.library.path',
-    '-Dorg.lwjgl.librarypath',
-    '-Djna.library.path',
-    '-Dsun.boot.library.path',
-    '-Dlog4j.configurationFile',
-    '-Dlog4j2.configurationFile',
-    '-Dcom.sun.management.jmxremote',
-    '--patch-module',
-    '--add-opens',
-    '--add-exports'
-]
-const RISKY_GAME_ARG_NAMES = [
-    '--accessToken',
-    '--uuid',
-    '--username',
-    '--userProperties',
-    '--xuid',
-    '--clientId',
-    '--quickPlayPath',
-    '--quickPlayMultiplayer',
-    '--server',
-    '--port'
-]
-
 function overlayParagraph(text){
     return el('p', { text: text ?? '' })
 }
@@ -45,51 +16,14 @@ function overlayList(...items){
     return el('ul', { className: 'overlay-list' }, items.filter(Boolean))
 }
 
-function splitUserArgs(value){
-    if(typeof value !== 'string'){
-        return []
-    }
-
-    return value
-        .split(/\s+/)
-        .map(arg => arg.trim())
-        .filter(Boolean)
-}
-
-function matchesNamedArg(arg, name){
-    return arg === name || arg.startsWith(`${name}=`)
-}
-
-function collectUnsafeSettingsWarnings(patch){
-    const warnings = []
-    const extraJvmArgs = splitUserArgs(patch.extraJvmArgs)
-    const extraGameArgs = splitUserArgs(patch.extraGameArgs)
-
-    for(const arg of extraJvmArgs){
-        if(RISKY_JVM_ARG_PREFIXES.some(prefix => arg.startsWith(prefix))){
-            warnings.push({
-                title: `JVM 인자: ${arg}`,
-                message: '외부 코드, 네이티브 라이브러리, 런타임 보안 완화 설정으로 악용될 수 있어 권고되지 않습니다.'
-            })
-        }
-    }
-
-    for(const arg of extraGameArgs){
-        if(RISKY_GAME_ARG_NAMES.some(name => matchesNamedArg(arg, name))){
-            warnings.push({
-                title: `게임 인자: ${arg}`,
-                message: '계정 세션, 플레이어 식별자, 접속 대상 같은 런처가 관리해야 할 값을 덮어쓸 수 있어 권고되지 않습니다.'
-            })
-        }
-    }
-
-    return warnings
+function parseArgumentLines(value){
+    return String(value ?? '').split(/\r?\n/).map(argument => argument.trim()).filter(Boolean)
 }
 
 function buildUnsafeSettingsOverlayBody(warnings){
     return fragment(
         overlayParagraph('해당 항목은 보안 취약점 또는 세션 변조 위험으로 인해 권고되지 않습니다. 저장하시겠습니까?'),
-        overlayList(...warnings.map(warning => overlayListItem(warning.title, warning.message)))
+        overlayList(...warnings.map(warning => overlayListItem('보안 경고', warning)))
     )
 }
 
@@ -106,8 +40,12 @@ export function createSettingController({
             successMessage = '설정을 저장했습니다.',
             ...saveOptions
         } = options
-        const bootstrap = await window.starPrisonLauncher.saveSettings(patch, saveOptions)
-        await refreshBootstrap(bootstrap)
+        const result = await window.starPrisonLauncher.saveSettings(patch, saveOptions)
+        if(result.requiresConfirmation){
+            promptUnsafeSettingsSave(patch, result.warnings ?? [])
+            return false
+        }
+        await refreshBootstrap(result.bootstrap)
         showOverlay({
             title: successTitle,
             body: overlayParagraph(successMessage)
@@ -117,6 +55,7 @@ export function createSettingController({
         if(typeof onAfterSave === 'function'){
             onAfterSave()
         }
+        return true
     }
 
     function promptUnsafeSettingsSave(patch, warnings){
@@ -169,22 +108,15 @@ export function createSettingController({
         }
 
         if(extraJvmArgsInput != null){
-            patch.extraJvmArgs = extraJvmArgsInput.value.trim()
+            patch.extraJvmArgs = parseArgumentLines(extraJvmArgsInput.value)
         }
 
         if(extraGameArgsInput != null){
-            patch.extraGameArgs = extraGameArgsInput.value.trim()
+            patch.extraGameArgs = parseArgumentLines(extraGameArgsInput.value)
         }
 
         if(allowPrereleaseInput != null){
             patch.allowPrerelease = allowPrereleaseInput.checked
-        }
-
-        const warnings = collectUnsafeSettingsWarnings(patch)
-
-        if(warnings.length > 0){
-            promptUnsafeSettingsSave(patch, warnings)
-            return
         }
 
         await persistSettingsPatch(patch)
@@ -197,8 +129,8 @@ export function createSettingController({
                 allowPrerelease: false,
                 maxRamMb: recommendedRamMb,
                 gameResolution: 'default',
-                extraJvmArgs: '',
-                extraGameArgs: ''
+                extraJvmArgs: [],
+                extraGameArgs: []
             },
             {
                 successTitle: '초기화 완료',

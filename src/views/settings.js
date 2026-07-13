@@ -23,6 +23,13 @@ function settingsInput(id, name, value, extraAttrs = {}){
     })
 }
 
+function settingsArguments(id, name, values){
+    return el('textarea', {
+        attrs: { id, name, rows: '4', spellcheck: 'false' },
+        props: { value: Array.isArray(values) ? values.join('\n') : '' }
+    })
+}
+
 function settingsSelect(id, name, value, options){
     const selectedValue = options.some(option => option.value === value) ? value : options[0]?.value
     const select = el('select', {
@@ -101,13 +108,13 @@ export function renderSettingsView(state){
                     el('div', { className: 'advanced-settings__body' },
                         el('label', { className: 'field' },
                             el('span', { className: 'field-label', text: '추가 JVM Args' }),
-                            settingsInput('extra-jvm-args-input', 'extraJvmArgs', userConfig.settings.extraJvmArgs ?? ''),
-                            helpCopy('-Djava.net.preferIPv4Stack=true 등')
+                            settingsArguments('extra-jvm-args-input', 'extraJvmArgs', userConfig.settings.extraJvmArgs),
+                            helpCopy('한 줄에 인자 하나씩 입력하세요. 예: -Djava.net.preferIPv4Stack=true')
                         ),
                         el('label', { className: 'field' },
                             el('span', { className: 'field-label', text: '추가 Game Args' }),
-                            settingsInput('extra-game-args-input', 'extraGameArgs', userConfig.settings.extraGameArgs ?? ''),
-                            helpCopy('--fullscreen 등')
+                            settingsArguments('extra-game-args-input', 'extraGameArgs', userConfig.settings.extraGameArgs),
+                            helpCopy('한 줄에 인자 하나씩 입력하세요. 예: --fullscreen')
                         )
                     )
                 )

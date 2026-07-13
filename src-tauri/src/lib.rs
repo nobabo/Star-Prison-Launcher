@@ -10,17 +10,39 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc;
+use std::sync::Mutex;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use url::Url;
 
-include!("types.rs");
-include!("protected_storage.rs");
-include!("storage.rs");
-include!("bootstrap.rs");
-include!("auth.rs");
-include!("launch.rs");
-include!("commands.rs");
+mod types;
+use types::*;
+mod protected_storage;
+use protected_storage::*;
+mod storage;
+use storage::*;
+mod bootstrap;
+use bootstrap::*;
+mod auth;
+use auth::*;
+mod launch_utils;
+use launch_utils::*;
+mod install_paths;
+use install_paths::*;
+mod install_state;
+use install_state::*;
+mod installation;
+use installation::*;
+mod modpack;
+use modpack::*;
+mod launch_plan;
+use launch_plan::*;
+mod minecraft_process;
+use minecraft_process::*;
+mod minecraft;
+use minecraft::*;
+mod commands;
+use commands::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -43,20 +65,19 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            get_bootstrap,
-            sign_in,
-            sign_out,
-            select_data_directory,
-            open_managed_directory,
-            save_settings,
-            launch,
-            terminate_minecraft,
-            submit_launcher_event,
-            open_external,
-            get_window_state,
-            minimize_window,
-            toggle_maximize_window,
-            close_window
+            commands::get_bootstrap,
+            commands::sign_in,
+            commands::sign_out,
+            commands::select_data_directory,
+            commands::open_managed_directory,
+            commands::save_settings,
+            commands::launch,
+            commands::terminate_minecraft,
+            commands::open_external,
+            commands::get_window_state,
+            commands::minimize_window,
+            commands::toggle_maximize_window,
+            commands::close_window
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

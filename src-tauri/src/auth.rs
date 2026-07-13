@@ -1,23 +1,25 @@
-fn create_random_base64url(byte_len: usize) -> String {
+use crate::*;
+
+pub(crate) fn create_random_base64url(byte_len: usize) -> String {
     let mut bytes = vec![0; byte_len];
     getrandom::fill(&mut bytes).expect("OS random source must be available for OAuth PKCE");
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 
-fn create_code_verifier() -> String {
+pub(crate) fn create_code_verifier() -> String {
     create_random_base64url(64)
 }
 
-fn create_oauth_state() -> String {
+pub(crate) fn create_oauth_state() -> String {
     create_random_base64url(24)
 }
 
-fn create_code_challenge(code_verifier: &str) -> String {
+pub(crate) fn create_code_challenge(code_verifier: &str) -> String {
     let digest = Sha256::digest(code_verifier.as_bytes());
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(digest)
 }
 
-fn is_matching_redirect_url(target_url: &Url, redirect_url: &Url) -> bool {
+pub(crate) fn is_matching_redirect_url(target_url: &Url, redirect_url: &Url) -> bool {
     target_url.scheme() == redirect_url.scheme()
         && target_url.username() == redirect_url.username()
         && target_url.password() == redirect_url.password()
@@ -26,7 +28,7 @@ fn is_matching_redirect_url(target_url: &Url, redirect_url: &Url) -> bool {
         && target_url.path() == redirect_url.path()
 }
 
-fn normalize_auth_error_message(value: Option<&str>, fallback: String) -> String {
+pub(crate) fn normalize_auth_error_message(value: Option<&str>, fallback: String) -> String {
     value
         .map(str::trim)
         .filter(|message| !message.is_empty())
@@ -34,7 +36,7 @@ fn normalize_auth_error_message(value: Option<&str>, fallback: String) -> String
         .unwrap_or(fallback)
 }
 
-fn extract_error_message(payload: &Value, status: u16) -> String {
+pub(crate) fn extract_error_message(payload: &Value, status: u16) -> String {
     match payload {
         Value::String(value) => normalize_auth_error_message(
             Some(value),
@@ -55,7 +57,7 @@ fn extract_error_message(payload: &Value, status: u16) -> String {
     }
 }
 
-fn classify_auth_error(error: AuthError) -> AuthError {
+pub(crate) fn classify_auth_error(error: AuthError) -> AuthError {
     if error.code == "AUTH_MINECRAFT_OWNERSHIP_REQUIRED" {
         return AuthError::new(
             "AUTH_MINECRAFT_OWNERSHIP_REQUIRED",
@@ -122,7 +124,10 @@ fn classify_auth_error(error: AuthError) -> AuthError {
     error
 }
 
-fn request_json(request: reqwest::blocking::RequestBuilder, url: &str) -> Result<Value, AuthError> {
+pub(crate) fn request_json(
+    request: reqwest::blocking::RequestBuilder,
+    url: &str,
+) -> Result<Value, AuthError> {
     let response = request
         .send()
         .map_err(|error| AuthError::new("AUTH_NETWORK_ERROR", error.to_string()))?;
@@ -136,7 +141,7 @@ fn request_json(request: reqwest::blocking::RequestBuilder, url: &str) -> Result
     Ok(payload)
 }
 
-fn auth_http_client() -> Result<reqwest::blocking::Client, AuthError> {
+pub(crate) fn auth_http_client() -> Result<reqwest::blocking::Client, AuthError> {
     reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(AUTH_HTTP_CONNECT_TIMEOUT_SECONDS))
         .timeout(Duration::from_secs(AUTH_HTTP_REQUEST_TIMEOUT_SECONDS))
@@ -144,7 +149,7 @@ fn auth_http_client() -> Result<reqwest::blocking::Client, AuthError> {
         .map_err(|error| AuthError::new("AUTH_CLIENT_FAILED", error.to_string()))
 }
 
-fn string_field(payload: &Value, field: &str) -> Result<String, AuthError> {
+pub(crate) fn string_field(payload: &Value, field: &str) -> Result<String, AuthError> {
     payload
         .get(field)
         .and_then(Value::as_str)
@@ -157,7 +162,7 @@ fn string_field(payload: &Value, field: &str) -> Result<String, AuthError> {
         })
 }
 
-fn request_microsoft_tokens(
+pub(crate) fn request_microsoft_tokens(
     client: &reqwest::blocking::Client,
     client_id: &str,
     redirect_uri: &str,
@@ -180,7 +185,7 @@ fn request_microsoft_tokens(
     )
 }
 
-fn exchange_authorization_code(
+pub(crate) fn exchange_authorization_code(
     client: &reqwest::blocking::Client,
     client_id: &str,
     redirect_uri: &str,
@@ -199,7 +204,7 @@ fn exchange_authorization_code(
     )
 }
 
-fn exchange_refresh_token(
+pub(crate) fn exchange_refresh_token(
     client: &reqwest::blocking::Client,
     client_id: &str,
     redirect_uri: &str,
@@ -216,7 +221,7 @@ fn exchange_refresh_token(
     )
 }
 
-fn exchange_microsoft_tokens_for_minecraft(
+pub(crate) fn exchange_microsoft_tokens_for_minecraft(
     client: &reqwest::blocking::Client,
     microsoft_access_token: &str,
 ) -> Result<MinecraftSession, AuthError> {
@@ -324,7 +329,7 @@ fn exchange_microsoft_tokens_for_minecraft(
     })
 }
 
-fn auth_session_payload(
+pub(crate) fn auth_session_payload(
     refresh_token: String,
     minecraft_session: MinecraftSession,
     refreshed: bool,
@@ -340,7 +345,7 @@ fn auth_session_payload(
     })
 }
 
-fn microsoft_auth_config(app_config: &Value) -> Result<(String, String), AuthError> {
+pub(crate) fn microsoft_auth_config(app_config: &Value) -> Result<(String, String), AuthError> {
     let client_id = app_config
         .get("microsoftClientId")
         .and_then(Value::as_str)
@@ -364,17 +369,22 @@ fn microsoft_auth_config(app_config: &Value) -> Result<(String, String), AuthErr
     Ok((client_id, redirect_uri))
 }
 
-fn auth_session_needs_refresh(session: &Map<String, Value>) -> bool {
+pub(crate) fn auth_session_needs_refresh(session: &Map<String, Value>) -> bool {
     session
         .get("expiresAt")
         .and_then(Value::as_i64)
         .is_none_or(|expires_at| expires_at <= now_ms() + AUTH_REFRESH_MARGIN_MS)
 }
 
-fn refresh_auth_session_if_needed(
+pub(crate) fn refresh_auth_session_if_needed(
     user_config: &mut Value,
     app_config: &Value,
 ) -> Result<bool, AuthError> {
+    let _mutation_guard =
+        lock_user_config_mutation().map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
+    *user_config = load_or_create_user_config()
+        .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
+    let previous = user_config.clone();
     let Some(session) = user_config.get("authSession").and_then(Value::as_object) else {
         return Ok(false);
     };
@@ -415,11 +425,12 @@ fn refresh_auth_session_if_needed(
         config.insert("authSession".to_string(), refreshed_session);
     }
 
-    save_user_config(user_config).map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
+    save_user_config_if_changed(&previous, user_config)
+        .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
     Ok(true)
 }
 
-async fn capture_authorization_code(
+pub(crate) async fn capture_authorization_code(
     app: &tauri::AppHandle,
     client_id: &str,
     redirect_uri: &str,
@@ -443,8 +454,8 @@ async fn capture_authorization_code(
         .append_pair("code_challenge_method", "S256");
 
     let (sender, receiver) = mpsc::channel::<Result<AuthGrant, AuthError>>();
-    let redirect_url =
-        Url::parse(redirect_uri).map_err(|error| AuthError::new("AUTH_REDIRECT_INVALID", error.to_string()))?;
+    let redirect_url = Url::parse(redirect_uri)
+        .map_err(|error| AuthError::new("AUTH_REDIRECT_INVALID", error.to_string()))?;
     let navigation_sender = sender.clone();
     let close_sender = sender.clone();
     let oauth_state_for_navigation = oauth_state.clone();
@@ -534,7 +545,7 @@ async fn capture_authorization_code(
     result
 }
 
-async fn run_sign_in(app: &tauri::AppHandle) -> Result<Value, AuthError> {
+pub(crate) async fn run_sign_in(app: &tauri::AppHandle) -> Result<Value, AuthError> {
     let app_config =
         load_app_config().map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
     let (client_id, redirect_uri) = microsoft_auth_config(&app_config)?;
@@ -559,15 +570,18 @@ async fn run_sign_in(app: &tauri::AppHandle) -> Result<Value, AuthError> {
         let minecraft_session =
             exchange_microsoft_tokens_for_minecraft(&client, &microsoft_access_token)?;
 
+        let _mutation_guard = lock_user_config_mutation()
+            .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
         let mut user_config = load_or_create_user_config()
             .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
+        let previous = user_config.clone();
         let session = auth_session_payload(refresh_token, minecraft_session, false);
 
         if let Some(config) = user_config.as_object_mut() {
             config.insert("authSession".to_string(), session.clone());
         }
 
-        save_user_config(&user_config)
+        save_user_config_if_changed(&previous, &user_config)
             .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
 
         Ok(json!({
@@ -585,7 +599,7 @@ async fn run_sign_in(app: &tauri::AppHandle) -> Result<Value, AuthError> {
     .map_err(|error| AuthError::new("AUTH_TASK_FAILED", error.to_string()))?
 }
 
-fn build_bootstrap_payload() -> Result<Value, String> {
+pub(crate) fn build_bootstrap_payload() -> Result<Value, String> {
     let app_config = load_app_config()?;
     let server_manifest = load_server_manifest()?;
     let user_config = load_or_create_user_config()?;

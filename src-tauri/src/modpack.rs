@@ -1,4 +1,6 @@
-fn modpack_manifest_cache_path(data_directory: &Path, descriptor: &Value) -> PathBuf {
+use crate::*;
+
+pub(crate) fn modpack_manifest_cache_path(data_directory: &Path, descriptor: &Value) -> PathBuf {
     data_directory
         .join("downloads")
         .join("modpack-manifests")
@@ -15,7 +17,7 @@ fn modpack_manifest_cache_path(data_directory: &Path, descriptor: &Value) -> Pat
         ))
 }
 
-fn modpack_file_cache_path(data_directory: &Path, file_entry: &Value) -> PathBuf {
+pub(crate) fn modpack_file_cache_path(data_directory: &Path, file_entry: &Value) -> PathBuf {
     data_directory.join("downloads").join("modpack-files").join(
         file_entry
             .get("sha256")
@@ -24,7 +26,7 @@ fn modpack_file_cache_path(data_directory: &Path, file_entry: &Value) -> PathBuf
     )
 }
 
-fn release_archive_cache_path(
+pub(crate) fn release_archive_cache_path(
     data_directory: &Path,
     descriptor: &Value,
     fallback_name: &str,
@@ -40,7 +42,9 @@ fn release_archive_cache_path(
     if !matches!(components.next(), Some(std::path::Component::Normal(_)))
         || components.next().is_some()
     {
-        return Err(format!("release archive 파일 이름이 올바르지 않습니다: {file_name}"));
+        return Err(format!(
+            "release archive 파일 이름이 올바르지 않습니다: {file_name}"
+        ));
     }
 
     Ok(data_directory
@@ -49,20 +53,26 @@ fn release_archive_cache_path(
         .join(file_name))
 }
 
-fn launcher_release_archive_state_path(archive_key: &str) -> PathBuf {
+pub(crate) fn launcher_release_archive_state_path(archive_key: &str) -> PathBuf {
     storage_root_path()
         .join("config")
         .join(format!("{archive_key}.json"))
 }
 
-fn legacy_release_archive_state_path(data_directory: &Path, archive_key: &str) -> PathBuf {
+pub(crate) fn legacy_release_archive_state_path(
+    data_directory: &Path,
+    archive_key: &str,
+) -> PathBuf {
     data_directory
         .join("state")
         .join("release-archives")
         .join(format!("{archive_key}.json"))
 }
 
-fn migrate_legacy_release_archive_state(data_directory: &Path, archive_key: &str) -> Result<(), String> {
+pub(crate) fn migrate_legacy_release_archive_state(
+    data_directory: &Path,
+    archive_key: &str,
+) -> Result<(), String> {
     let path = launcher_release_archive_state_path(archive_key);
     let legacy_path = legacy_release_archive_state_path(data_directory, archive_key);
 
@@ -89,7 +99,7 @@ fn migrate_legacy_release_archive_state(data_directory: &Path, archive_key: &str
     Ok(())
 }
 
-fn release_archive_signature(descriptor: &Value) -> Value {
+pub(crate) fn release_archive_signature(descriptor: &Value) -> Value {
     json!({
         "layoutVersion": 2,
         "version": descriptor.get("version").cloned().unwrap_or(Value::Null),
@@ -100,7 +110,7 @@ fn release_archive_signature(descriptor: &Value) -> Value {
     })
 }
 
-fn validate_modpack_manifest(
+pub(crate) fn validate_modpack_manifest(
     modpack_manifest: &Value,
     require_file_urls: bool,
 ) -> Result<(), String> {
@@ -154,7 +164,7 @@ fn validate_modpack_manifest(
     Ok(())
 }
 
-fn assert_compatible_modpack(
+pub(crate) fn assert_compatible_modpack(
     server_manifest: &Value,
     launch_plan: &Value,
     descriptor: &Value,
@@ -197,7 +207,10 @@ fn assert_compatible_modpack(
     Ok(())
 }
 
-fn release_archive_target_root(bundle_root: &Path, archive_key: &str) -> Result<PathBuf, String> {
+pub(crate) fn release_archive_target_root(
+    bundle_root: &Path,
+    archive_key: &str,
+) -> Result<PathBuf, String> {
     match archive_key {
         "mods" => Ok(managed_file_allowed_root(bundle_root, "mod")),
         "config" => Ok(managed_file_allowed_root(bundle_root, "config")),
@@ -206,7 +219,9 @@ fn release_archive_target_root(bundle_root: &Path, archive_key: &str) -> Result<
     }
 }
 
-fn release_archive_root_prefixes(archive_key: &str) -> Result<&'static [&'static str], String> {
+pub(crate) fn release_archive_root_prefixes(
+    archive_key: &str,
+) -> Result<&'static [&'static str], String> {
     match archive_key {
         "mods" => Ok(&["mods"]),
         "config" => Ok(&["config"]),
@@ -215,28 +230,33 @@ fn release_archive_root_prefixes(archive_key: &str) -> Result<&'static [&'static
     }
 }
 
-fn release_archive_extraction_limits(archive_key: &str) -> Result<ZipExtractionLimits, String> {
+pub(crate) fn release_archive_extraction_limits(
+    archive_key: &str,
+) -> Result<ZipExtractionLimits, String> {
     match archive_key {
         "mods" => Ok(ZipExtractionLimits {
             max_file_count: 80,
             max_entry_count: 96,
+            max_path_depth: 8,
             max_uncompressed_size: 100 * 1024 * 1024,
         }),
         "config" => Ok(ZipExtractionLimits {
             max_file_count: 160,
             max_entry_count: 192,
+            max_path_depth: 12,
             max_uncompressed_size: 20 * 1024 * 1024,
         }),
         "shaderpacks" => Ok(ZipExtractionLimits {
             max_file_count: 20,
             max_entry_count: 24,
+            max_path_depth: 6,
             max_uncompressed_size: 30 * 1024 * 1024,
         }),
         _ => Err(format!("지원하지 않는 아카이브입니다: {archive_key}")),
     }
 }
 
-fn release_archive_already_installed(
+pub(crate) fn release_archive_already_installed(
     data_directory: &Path,
     target_root: &Path,
     archive_key: &str,
@@ -254,7 +274,7 @@ fn release_archive_already_installed(
         .is_some_and(|signature| signature == release_archive_signature(descriptor))
 }
 
-fn save_release_archive_state(
+pub(crate) fn save_release_archive_state(
     archive_key: &str,
     descriptor: &Value,
     target_root: &Path,
@@ -276,10 +296,16 @@ fn save_release_archive_state(
             serde_json::to_string_pretty(&state).map_err(|error| error.to_string())?
         ),
     )
-    .map_err(|error| io_error("release archive 설치 상태 파일을 쓰지 못했습니다", &path, error))
+    .map_err(|error| {
+        io_error(
+            "release archive 설치 상태 파일을 쓰지 못했습니다",
+            &path,
+            error,
+        )
+    })
 }
 
-struct ReleaseArchiveInstallSpec<'a> {
+pub(crate) struct ReleaseArchiveInstallSpec<'a> {
     archive_key: &'a str,
     descriptor: Option<&'a Value>,
     fallback_name: &'a str,
@@ -289,7 +315,7 @@ struct ReleaseArchiveInstallSpec<'a> {
     force_install: bool,
 }
 
-fn ensure_release_archive_installed(
+pub(crate) fn ensure_release_archive_installed(
     app: &tauri::AppHandle,
     data_directory: &Path,
     bundle_root: &Path,
@@ -302,7 +328,12 @@ fn ensure_release_archive_installed(
     let archive_path = release_archive_cache_path(data_directory, descriptor, spec.fallback_name)?;
 
     if !spec.force_install
-        && release_archive_already_installed(data_directory, &target_root, spec.archive_key, descriptor)
+        && release_archive_already_installed(
+            data_directory,
+            &target_root,
+            spec.archive_key,
+            descriptor,
+        )
     {
         remove_file_if_exists(&archive_path)?;
         cleanup_empty_launcher_cache_dirs(data_directory);
@@ -366,7 +397,7 @@ fn ensure_release_archive_installed(
     Ok(true)
 }
 
-fn ensure_release_archives_synchronized(
+pub(crate) fn ensure_release_archives_synchronized(
     app: &tauri::AppHandle,
     data_directory: &Path,
     bundle_root: &Path,
@@ -436,7 +467,7 @@ fn ensure_release_archives_synchronized(
     Ok(changed_count)
 }
 
-fn path_is_inside(root: &Path, target: &Path) -> bool {
+pub(crate) fn path_is_inside(root: &Path, target: &Path) -> bool {
     let Ok(relative) = target.strip_prefix(root) else {
         return false;
     };
@@ -446,7 +477,7 @@ fn path_is_inside(root: &Path, target: &Path) -> bool {
         .any(|component| matches!(component, std::path::Component::ParentDir))
 }
 
-fn managed_file_allowed_root(bundle_root: &Path, kind: &str) -> PathBuf {
+pub(crate) fn managed_file_allowed_root(bundle_root: &Path, kind: &str) -> PathBuf {
     match kind {
         "mod" => bundle_root.join("mods"),
         "shaderpack" => bundle_root.join("shaderpacks"),
@@ -456,7 +487,10 @@ fn managed_file_allowed_root(bundle_root: &Path, kind: &str) -> PathBuf {
     }
 }
 
-fn resolve_managed_target_path(bundle_root: &Path, file_entry: &Value) -> Result<PathBuf, String> {
+pub(crate) fn resolve_managed_target_path(
+    bundle_root: &Path,
+    file_entry: &Value,
+) -> Result<PathBuf, String> {
     let relative_path = descriptor_string(file_entry, "path")?;
     let kind = descriptor_string(file_entry, "kind")?;
     let relative = Path::new(relative_path);
@@ -471,7 +505,9 @@ fn resolve_managed_target_path(bundle_root: &Path, file_entry: &Value) -> Result
             )
         })
     {
-        return Err(format!("관리 파일 경로가 상대 경로가 아닙니다: {relative_path}"));
+        return Err(format!(
+            "관리 파일 경로가 상대 경로가 아닙니다: {relative_path}"
+        ));
     }
 
     let target_path = bundle_root.join(relative);
@@ -493,7 +529,10 @@ fn resolve_managed_target_path(bundle_root: &Path, file_entry: &Value) -> Result
     Ok(target_path)
 }
 
-fn copy_cache_file_to_target(cache_path: &Path, target_path: &Path) -> Result<(), String> {
+pub(crate) fn copy_cache_file_to_target(
+    cache_path: &Path,
+    target_path: &Path,
+) -> Result<(), String> {
     ensure_parent_dir(target_path)?;
     let temp_path = target_path.with_extension(format!("tmp-{}", now_ms()));
     remove_path_if_exists(&temp_path)?;
@@ -502,7 +541,7 @@ fn copy_cache_file_to_target(cache_path: &Path, target_path: &Path) -> Result<()
     fs::rename(temp_path, target_path).map_err(|error| error.to_string())
 }
 
-fn ensure_managed_file_installed(
+pub(crate) fn ensure_managed_file_installed(
     data_directory: &Path,
     bundle_root: &Path,
     file_entry: &Value,
@@ -541,7 +580,10 @@ fn ensure_managed_file_installed(
     Ok(true)
 }
 
-fn reconcile_mods_directory(bundle_root: &Path, modpack_manifest: &Value) -> Result<(), String> {
+pub(crate) fn reconcile_mods_directory(
+    bundle_root: &Path,
+    modpack_manifest: &Value,
+) -> Result<(), String> {
     let mods_root = managed_file_allowed_root(bundle_root, "mod");
     let mut expected_paths = HashSet::new();
 
@@ -560,7 +602,7 @@ fn reconcile_mods_directory(bundle_root: &Path, modpack_manifest: &Value) -> Res
     prune_unexpected_files(&mods_root, &mods_root, &expected_paths)
 }
 
-fn prune_unexpected_files(
+pub(crate) fn prune_unexpected_files(
     root: &Path,
     directory: &Path,
     expected_paths: &HashSet<PathBuf>,
@@ -597,7 +639,7 @@ fn prune_unexpected_files(
     Ok(())
 }
 
-fn ensure_modpack_synchronized(
+pub(crate) fn ensure_modpack_synchronized(
     app: &tauri::AppHandle,
     data_directory: &Path,
     bundle_root: &Path,
@@ -610,10 +652,7 @@ fn ensure_modpack_synchronized(
     };
     let launch_plan = launch_plan
         .ok_or_else(|| "modpack 동기화에는 launch-profile.json이 필요합니다.".to_string())?;
-    let embedded_manifest = descriptor
-        .get("files")
-        .and_then(Value::as_array)
-        .is_some();
+    let embedded_manifest = descriptor.get("files").and_then(Value::as_array).is_some();
 
     let (modpack_manifest, manifest_path) = if embedded_manifest {
         (descriptor.clone(), None)
@@ -628,7 +667,10 @@ fn ensure_modpack_synchronized(
             "Modpack manifest",
         )?;
 
-        (read_json_file(&manifest_cache_path)?, Some(manifest_cache_path))
+        (
+            read_json_file(&manifest_cache_path)?,
+            Some(manifest_cache_path),
+        )
     };
 
     validate_modpack_manifest(&modpack_manifest, !embedded_manifest)?;

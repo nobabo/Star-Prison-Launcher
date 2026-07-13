@@ -1,4 +1,6 @@
-fn auth_summary(user_config: &Value) -> AuthSummary {
+use crate::*;
+
+pub(crate) fn auth_summary(user_config: &Value) -> AuthSummary {
     let session = user_config.get("authSession").and_then(Value::as_object);
 
     if session.is_none() {
@@ -30,7 +32,7 @@ fn auth_summary(user_config: &Value) -> AuthSummary {
     }
 }
 
-fn run_preflight(auth_summary: &AuthSummary) -> PreflightReport {
+pub(crate) fn run_preflight(auth_summary: &AuthSummary) -> PreflightReport {
     let mut diagnostics = Vec::new();
 
     if !auth_summary.signed_in {
@@ -54,7 +56,7 @@ fn run_preflight(auth_summary: &AuthSummary) -> PreflightReport {
     }
 }
 
-fn background_assets() -> Vec<String> {
+pub(crate) fn background_assets() -> Vec<String> {
     [
         "/assets/background/1.webp",
         "/assets/background/2.webp",
@@ -67,7 +69,7 @@ fn background_assets() -> Vec<String> {
     .collect()
 }
 
-fn app_config_payload(app_config: &Value) -> Value {
+pub(crate) fn app_config_payload(app_config: &Value) -> Value {
     json!({
         "productName": app_config.get("productName").cloned().unwrap_or(Value::String("star-prison".to_string())),
         "supportUrl": app_config.get("supportUrl").cloned().unwrap_or(Value::String(String::new())),

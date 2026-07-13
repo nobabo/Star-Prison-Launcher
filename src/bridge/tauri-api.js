@@ -3,16 +3,23 @@ import { listen } from '../vendor/tauri/event.js'
 
 function onTauriEvent(eventName, callback){
     let unlisten = null
+    let disposed = false
 
     listen(eventName, event => {
         callback(event.payload)
     }).then(value => {
+        if(disposed){
+            value()
+            return
+        }
         unlisten = value
     })
 
     return () => {
+        disposed = true
         if(unlisten != null){
             unlisten()
+            unlisten = null
         }
     }
 }
@@ -51,9 +58,6 @@ export function createLauncherBridge(){
         },
         terminateMinecraft(){
             return invoke('terminate_minecraft')
-        },
-        submitLauncherEvent(eventType, metadata = {}){
-            return invoke('submit_launcher_event', { eventType, metadata })
         },
         onLaunchStateChanged(callback){
             return onTauriEvent('launcher:launch-state-changed', callback)

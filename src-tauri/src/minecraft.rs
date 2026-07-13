@@ -1,4 +1,6 @@
-fn resolve_game_directory(bundle_root: &Path, launch_plan: Option<&Value>) -> PathBuf {
+use crate::*;
+
+pub(crate) fn resolve_game_directory(bundle_root: &Path, launch_plan: Option<&Value>) -> PathBuf {
     launch_plan
         .and_then(|plan| plan.get("gameDirectory"))
         .and_then(Value::as_str)
@@ -6,7 +8,7 @@ fn resolve_game_directory(bundle_root: &Path, launch_plan: Option<&Value>) -> Pa
         .unwrap_or_else(|| bundle_root.to_path_buf())
 }
 
-fn current_launcher_version() -> String {
+pub(crate) fn current_launcher_version() -> String {
     serde_json::from_str::<Value>(include_str!("../../package.json"))
         .ok()
         .and_then(|package| {
@@ -20,7 +22,7 @@ fn current_launcher_version() -> String {
         .expect("package.json version must be set")
 }
 
-fn installed_launcher_version(install_state: Option<&Value>) -> Option<&str> {
+pub(crate) fn installed_launcher_version(install_state: Option<&Value>) -> Option<&str> {
     install_state
         .and_then(|state| state.get("launcherVersion"))
         .and_then(Value::as_str)
@@ -28,11 +30,15 @@ fn installed_launcher_version(install_state: Option<&Value>) -> Option<&str> {
         .filter(|value| !value.is_empty())
 }
 
-fn launcher_content_reinstall_required(install_state: Option<&Value>, launcher_version: &str) -> bool {
-    install_state.is_some_and(|state| installed_launcher_version(Some(state)) != Some(launcher_version))
+pub(crate) fn launcher_content_reinstall_required(
+    install_state: Option<&Value>,
+    launcher_version: &str,
+) -> bool {
+    install_state
+        .is_some_and(|state| installed_launcher_version(Some(state)) != Some(launcher_version))
 }
 
-fn runtime_install_signature(runtime: &Value) -> Value {
+pub(crate) fn runtime_install_signature(runtime: &Value) -> Value {
     json!({
         "id": runtime.get("id").cloned().unwrap_or(Value::Null),
         "version": runtime.get("version").cloned().unwrap_or(Value::Null),
@@ -43,7 +49,10 @@ fn runtime_install_signature(runtime: &Value) -> Value {
     })
 }
 
-fn client_install_signature(server_manifest: &Value, channel: &Value) -> Result<Value, String> {
+pub(crate) fn client_install_signature(
+    server_manifest: &Value,
+    channel: &Value,
+) -> Result<Value, String> {
     let client_bundle = channel
         .get("clientBundle")
         .ok_or_else(|| "배포 manifest에 clientBundle 정보가 없습니다.".to_string())?;
@@ -54,7 +63,7 @@ fn client_install_signature(server_manifest: &Value, channel: &Value) -> Result<
     }))
 }
 
-fn install_checkpoint_identity(
+pub(crate) fn install_checkpoint_identity(
     channel_name: &str,
     launcher_version: &str,
     channel: &Value,
@@ -70,7 +79,7 @@ fn install_checkpoint_identity(
     })
 }
 
-fn install_signature_matches(
+pub(crate) fn install_signature_matches(
     install_state: Option<&Value>,
     field: &str,
     expected: &Value,
@@ -80,7 +89,10 @@ fn install_signature_matches(
         .is_some_and(|actual| actual == expected)
 }
 
-fn show_launcher_content_reinstall_notice(installed_version: Option<&str>, launcher_version: &str) {
+pub(crate) fn show_launcher_content_reinstall_notice(
+    installed_version: Option<&str>,
+    launcher_version: &str,
+) {
     let installed_version = installed_version.unwrap_or("알 수 없음");
     let _ = rfd::MessageDialog::new()
         .set_title("런처 업데이트")
@@ -91,13 +103,13 @@ fn show_launcher_content_reinstall_notice(installed_version: Option<&str>, launc
         .show();
 }
 
-fn launcher_storage_relative_path(path: &Path) -> Option<String> {
+pub(crate) fn launcher_storage_relative_path(path: &Path) -> Option<String> {
     path.strip_prefix(storage_root_path())
         .ok()
         .map(|path| path.to_string_lossy().into_owned())
 }
 
-fn minecraft_process_log_path() -> Result<PathBuf, String> {
+pub(crate) fn minecraft_process_log_path() -> Result<PathBuf, String> {
     let logs_directory = storage_root_path().join("logs");
     fs::create_dir_all(&logs_directory).map_err(|error| {
         io_error(
@@ -109,31 +121,38 @@ fn minecraft_process_log_path() -> Result<PathBuf, String> {
     Ok(logs_directory.join(format!("minecraft-process-{}.log", now_ms())))
 }
 
-fn nbt_write_name(buffer: &mut Vec<u8>, name: &str) -> Result<(), String> {
+pub(crate) fn nbt_write_name(buffer: &mut Vec<u8>, name: &str) -> Result<(), String> {
     let bytes = name.as_bytes();
-    let length = u16::try_from(bytes.len())
-        .map_err(|_| format!("NBT 이름이 너무 깁니다: {name}"))?;
+    let length =
+        u16::try_from(bytes.len()).map_err(|_| format!("NBT 이름이 너무 깁니다: {name}"))?;
     buffer.extend_from_slice(&length.to_be_bytes());
     buffer.extend_from_slice(bytes);
     Ok(())
 }
 
-fn nbt_write_string_payload(buffer: &mut Vec<u8>, value: &str) -> Result<(), String> {
+pub(crate) fn nbt_write_string_payload(buffer: &mut Vec<u8>, value: &str) -> Result<(), String> {
     let bytes = value.as_bytes();
-    let length = u16::try_from(bytes.len())
-        .map_err(|_| "서버 목록 문자열이 너무 깁니다.".to_string())?;
+    let length =
+        u16::try_from(bytes.len()).map_err(|_| "서버 목록 문자열이 너무 깁니다.".to_string())?;
     buffer.extend_from_slice(&length.to_be_bytes());
     buffer.extend_from_slice(bytes);
     Ok(())
 }
 
-fn nbt_write_string(buffer: &mut Vec<u8>, name: &str, value: &str) -> Result<(), String> {
+pub(crate) fn nbt_write_string(
+    buffer: &mut Vec<u8>,
+    name: &str,
+    value: &str,
+) -> Result<(), String> {
     buffer.push(8);
     nbt_write_name(buffer, name)?;
     nbt_write_string_payload(buffer, value)
 }
 
-fn build_single_server_list_nbt(server_name: &str, server_address: &str) -> Result<Vec<u8>, String> {
+pub(crate) fn build_single_server_list_nbt(
+    server_name: &str,
+    server_address: &str,
+) -> Result<Vec<u8>, String> {
     let mut buffer = Vec::new();
 
     buffer.push(10);
@@ -153,7 +172,7 @@ fn build_single_server_list_nbt(server_name: &str, server_address: &str) -> Resu
     Ok(buffer)
 }
 
-fn ensure_default_server_list(
+pub(crate) fn ensure_default_server_list(
     game_directory: &Path,
     server_manifest: &Value,
 ) -> Result<(), String> {
@@ -173,8 +192,13 @@ fn ensure_default_server_list(
     let content = build_single_server_list_nbt(server_name, server_address)?;
     let tmp_path = servers_dat_path.with_extension("dat.tmp");
 
-    fs::write(&tmp_path, content)
-        .map_err(|error| io_error("Minecraft 서버 목록 임시 파일을 쓰지 못했습니다", &tmp_path, error))?;
+    fs::write(&tmp_path, content).map_err(|error| {
+        io_error(
+            "Minecraft 서버 목록 임시 파일을 쓰지 못했습니다",
+            &tmp_path,
+            error,
+        )
+    })?;
     fs::rename(&tmp_path, &servers_dat_path).map_err(|error| {
         io_error(
             "Minecraft 서버 목록 파일을 적용하지 못했습니다",
@@ -186,7 +210,7 @@ fn ensure_default_server_list(
     Ok(())
 }
 
-fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
+pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     emit_launch_state(app, "앱 설정을 읽는 중", 0.10);
 
     let app_config = load_app_config()?;
@@ -290,11 +314,9 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
         "runtimeSignature",
         &runtime_signature,
     ) && !install_checkpoint_completed(&install_checkpoint, "runtime");
-    let force_client_install = !install_signature_matches(
-        install_state.as_ref(),
-        "clientSignature",
-        &client_signature,
-    ) && !install_checkpoint_completed(&install_checkpoint, "client");
+    let force_client_install =
+        !install_signature_matches(install_state.as_ref(), "clientSignature", &client_signature)
+            && !install_checkpoint_completed(&install_checkpoint, "client");
     let java_executable = ensure_runtime_installed(
         app,
         &data_directory,
@@ -330,12 +352,20 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
     emit_launch_state(app, "게임 폴더 확인", 0.58);
     let game_directory = resolve_game_directory(&bundle_root, launch_plan_value);
     let quick_play_dir = game_directory.join("quickPlay");
-    fs::create_dir_all(&quick_play_dir)
-        .map_err(|error| io_error("Minecraft quickPlay 폴더를 만들지 못했습니다", &quick_play_dir, error))?;
+    fs::create_dir_all(&quick_play_dir).map_err(|error| {
+        io_error(
+            "Minecraft quickPlay 폴더를 만들지 못했습니다",
+            &quick_play_dir,
+            error,
+        )
+    })?;
     ensure_default_server_list(&game_directory, &server_manifest)?;
 
     if should_reinstall_launcher_content {
-        show_launcher_content_reinstall_notice(installed_launcher_manifest_version, &launcher_version);
+        show_launcher_content_reinstall_notice(
+            installed_launcher_manifest_version,
+            &launcher_version,
+        );
     }
 
     let force_release_archive_keys: &[&str] = if should_reinstall_launcher_content {
@@ -439,7 +469,6 @@ fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> {
             }
         }),
     )?;
-    save_user_config(&user_config)?;
     mark_install_checkpoint(&mut install_checkpoint, "complete")?;
 
     emit_launch_state(app, "자바 실행 명령 구성", 0.86);

@@ -1,4 +1,6 @@
-fn client_option_value(value: &Value) -> Option<String> {
+use crate::*;
+
+pub(crate) fn client_option_value(value: &Value) -> Option<String> {
     match value {
         Value::String(value) => Some(value.clone()),
         Value::Bool(value) => Some(value.to_string()),
@@ -8,7 +10,7 @@ fn client_option_value(value: &Value) -> Option<String> {
     }
 }
 
-fn apply_client_config_options(game_directory: &Path) -> Result<(), String> {
+pub(crate) fn apply_client_config_options(game_directory: &Path) -> Result<(), String> {
     let options_path = game_directory.join("options.txt");
 
     let client_config = load_client_config()?;
@@ -22,7 +24,13 @@ fn apply_client_config_options(game_directory: &Path) -> Result<(), String> {
 
     let mut lines = if options_path.exists() {
         fs::read_to_string(&options_path)
-            .map_err(|error| io_error("Minecraft 옵션 파일을 읽지 못했습니다", &options_path, error))?
+            .map_err(|error| {
+                io_error(
+                    "Minecraft 옵션 파일을 읽지 못했습니다",
+                    &options_path,
+                    error,
+                )
+            })?
             .lines()
             .map(str::to_string)
             .collect()
@@ -52,13 +60,23 @@ fn apply_client_config_options(game_directory: &Path) -> Result<(), String> {
         return Ok(());
     }
 
-    fs::create_dir_all(game_directory)
-        .map_err(|error| io_error("Minecraft 옵션 폴더를 만들지 못했습니다", game_directory, error))?;
-    fs::write(&options_path, format!("{}\n", lines.join("\n")))
-        .map_err(|error| io_error("Minecraft 옵션 파일을 쓰지 못했습니다", &options_path, error))
+    fs::create_dir_all(game_directory).map_err(|error| {
+        io_error(
+            "Minecraft 옵션 폴더를 만들지 못했습니다",
+            game_directory,
+            error,
+        )
+    })?;
+    fs::write(&options_path, format!("{}\n", lines.join("\n"))).map_err(|error| {
+        io_error(
+            "Minecraft 옵션 파일을 쓰지 못했습니다",
+            &options_path,
+            error,
+        )
+    })
 }
 
-fn descriptor_string<'a>(descriptor: &'a Value, field: &str) -> Result<&'a str, String> {
+pub(crate) fn descriptor_string<'a>(descriptor: &'a Value, field: &str) -> Result<&'a str, String> {
     descriptor
         .get(field)
         .and_then(Value::as_str)
@@ -66,7 +84,7 @@ fn descriptor_string<'a>(descriptor: &'a Value, field: &str) -> Result<&'a str, 
         .ok_or_else(|| format!("배포 manifest 항목이 비어 있습니다: {field}"))
 }
 
-fn descriptor_size(descriptor: &Value, field: &str) -> Result<u64, String> {
+pub(crate) fn descriptor_size(descriptor: &Value, field: &str) -> Result<u64, String> {
     descriptor
         .get(field)
         .and_then(Value::as_u64)
@@ -74,26 +92,36 @@ fn descriptor_size(descriptor: &Value, field: &str) -> Result<u64, String> {
         .ok_or_else(|| format!("배포 manifest 크기 항목이 올바르지 않습니다: {field}"))
 }
 
-fn descriptor_optional_string<'a>(descriptor: &'a Value, field: &str) -> Option<&'a str> {
+pub(crate) fn descriptor_optional_string<'a>(
+    descriptor: &'a Value,
+    field: &str,
+) -> Option<&'a str> {
     descriptor
         .get(field)
         .and_then(Value::as_str)
         .filter(|value| !value.trim().is_empty())
 }
 
-fn descriptor_optional_size(descriptor: &Value, field: &str) -> Option<u64> {
+pub(crate) fn descriptor_optional_size(descriptor: &Value, field: &str) -> Option<u64> {
     descriptor
         .get(field)
         .and_then(Value::as_u64)
         .filter(|value| *value > 0)
 }
 
-fn descriptor_required_sha256<'a>(descriptor: &'a Value, label: &str) -> Result<&'a str, String> {
-    descriptor_optional_string(descriptor, "sha256")
-        .ok_or_else(|| format!("{label} SHA-256 checksum이 manifest에 없습니다. 다운로드를 중단합니다."))
+pub(crate) fn descriptor_required_sha256<'a>(
+    descriptor: &'a Value,
+    label: &str,
+) -> Result<&'a str, String> {
+    descriptor_optional_string(descriptor, "sha256").ok_or_else(|| {
+        format!("{label} SHA-256 checksum이 manifest에 없습니다. 다운로드를 중단합니다.")
+    })
 }
 
-fn find_extracted_runtime_root(staged_path: &Path, executable_path: &str) -> Option<PathBuf> {
+pub(crate) fn find_extracted_runtime_root(
+    staged_path: &Path,
+    executable_path: &str,
+) -> Option<PathBuf> {
     let direct_root = staged_path.to_path_buf();
 
     if direct_root.join(executable_path).exists() {
@@ -113,7 +141,10 @@ fn find_extracted_runtime_root(staged_path: &Path, executable_path: &str) -> Opt
     None
 }
 
-fn verify_runtime_installation(data_directory: &Path, runtime: &Value) -> Result<PathBuf, String> {
+pub(crate) fn verify_runtime_installation(
+    data_directory: &Path,
+    runtime: &Value,
+) -> Result<PathBuf, String> {
     let executable_path = runtime_executable_path(data_directory, runtime);
 
     if executable_path.exists() {
@@ -126,7 +157,10 @@ fn verify_runtime_installation(data_directory: &Path, runtime: &Value) -> Result
     ))
 }
 
-fn migrate_legacy_runtime_if_needed(data_directory: &Path, runtime: &Value) -> Result<(), String> {
+pub(crate) fn migrate_legacy_runtime_if_needed(
+    data_directory: &Path,
+    runtime: &Value,
+) -> Result<(), String> {
     let current_path = runtime_current_path(data_directory, runtime);
     let legacy_path = legacy_runtime_current_path(data_directory, runtime);
 
@@ -153,7 +187,7 @@ fn migrate_legacy_runtime_if_needed(data_directory: &Path, runtime: &Value) -> R
     Ok(())
 }
 
-fn ensure_runtime_installed(
+pub(crate) fn ensure_runtime_installed(
     app: &tauri::AppHandle,
     data_directory: &Path,
     runtime: &Value,
@@ -183,21 +217,16 @@ fn ensure_runtime_installed(
 
     emit_launch_state(app, "실행 준비 파일 압축 해제", 0.44);
     let staged_path = runtime_staged_path(data_directory, runtime);
-    extract_zip_archive(
-        &download_path,
-        &staged_path,
-        RUNTIME_ZIP_EXTRACTION_LIMITS,
-    )?;
+    extract_zip_archive(&download_path, &staged_path, RUNTIME_ZIP_EXTRACTION_LIMITS)?;
 
-    let executable_path =
-        runtime
-            .get("executablePath")
-            .and_then(Value::as_str)
-            .unwrap_or(if cfg!(windows) {
-                "bin/javaw.exe"
-            } else {
-                "bin/java"
-            });
+    let executable_path = runtime
+        .get("executablePath")
+        .and_then(Value::as_str)
+        .unwrap_or(if cfg!(windows) {
+            "bin/javaw.exe"
+        } else {
+            "bin/java"
+        });
     let runtime_root = find_extracted_runtime_root(&staged_path, executable_path)
         .ok_or_else(|| "Runtime 압축 해제 후 Java 실행 파일을 찾지 못했습니다.".to_string())?;
 
@@ -242,7 +271,7 @@ fn ensure_runtime_installed(
     Ok(executable_path)
 }
 
-fn read_remote_json_once(url: &str) -> Result<Value, String> {
+pub(crate) fn read_remote_json_once(url: &str) -> Result<Value, String> {
     let requested_url = validate_download_url(url)?;
     let response = reqwest::blocking::Client::builder()
         .connect_timeout(Duration::from_secs(3))
@@ -260,7 +289,7 @@ fn read_remote_json_once(url: &str) -> Result<Value, String> {
     let response = response
         .error_for_status()
         .map_err(|error| format!("원격 JSON 응답 오류 ({url}): {error}"))?;
-    const MAX_REMOTE_JSON_BYTES: u64 = 16 * 1024 * 1024;
+    pub(crate) const MAX_REMOTE_JSON_BYTES: u64 = 16 * 1024 * 1024;
 
     if response
         .content_length()
@@ -278,11 +307,10 @@ fn read_remote_json_once(url: &str) -> Result<Value, String> {
         return Err(format!("원격 JSON 응답이 크기 제한을 초과했습니다 ({url})"));
     }
 
-    serde_json::from_slice(&bytes)
-        .map_err(|error| format!("원격 JSON 파싱 실패 ({url}): {error}"))
+    serde_json::from_slice(&bytes).map_err(|error| format!("원격 JSON 파싱 실패 ({url}): {error}"))
 }
 
-fn validated_artifact_relative_path(value: &str) -> Result<PathBuf, String> {
+pub(crate) fn validated_artifact_relative_path(value: &str) -> Result<PathBuf, String> {
     let normalized = value.replace('\\', "/");
     let path = Path::new(&normalized);
     let mut has_component = false;
@@ -294,13 +322,15 @@ fn validated_artifact_relative_path(value: &str) -> Result<PathBuf, String> {
         })
         || !has_component
     {
-        return Err(format!("다운로드 artifact 경로가 올바르지 않습니다: {value}"));
+        return Err(format!(
+            "다운로드 artifact 경로가 올바르지 않습니다: {value}"
+        ));
     }
 
     Ok(path.to_path_buf())
 }
 
-fn read_remote_json(url: &str) -> Result<Value, String> {
+pub(crate) fn read_remote_json(url: &str) -> Result<Value, String> {
     let mut last_error = None;
 
     for attempt in 1..=3 {
@@ -318,7 +348,7 @@ fn read_remote_json(url: &str) -> Result<Value, String> {
     Err(last_error.unwrap_or_else(|| format!("원격 JSON 요청 실패 ({url})")))
 }
 
-fn maven_artifact_relative_path(name: &str) -> Result<String, String> {
+pub(crate) fn maven_artifact_relative_path(name: &str) -> Result<String, String> {
     let parts = name.split(':').collect::<Vec<_>>();
 
     if parts.len() < 3 {
@@ -337,7 +367,7 @@ fn maven_artifact_relative_path(name: &str) -> Result<String, String> {
     Ok(format!("{group_path}/{artifact}/{version}/{file_name}"))
 }
 
-fn ensure_remote_artifact(
+pub(crate) fn ensure_remote_artifact(
     url: &str,
     target_path: &Path,
     sha1: Option<&str>,
@@ -356,9 +386,9 @@ fn ensure_remote_artifact(
 }
 
 // Keep this conservative to avoid CDN throttling and Windows disk/AV spikes.
-const MINECRAFT_DOWNLOAD_CONCURRENCY: usize = 10;
+pub(crate) const MINECRAFT_DOWNLOAD_CONCURRENCY: usize = 10;
 
-struct RemoteArtifactTask {
+pub(crate) struct RemoteArtifactTask {
     url: String,
     target_path: PathBuf,
     sha1: Option<String>,
@@ -368,7 +398,7 @@ struct RemoteArtifactTask {
     progress_label: String,
 }
 
-fn remote_artifact_task(
+pub(crate) fn remote_artifact_task(
     url: &str,
     target_path: PathBuf,
     sha1: Option<&str>,
@@ -387,7 +417,7 @@ fn remote_artifact_task(
     }
 }
 
-fn run_remote_artifact_task(task: &RemoteArtifactTask) -> Result<(), String> {
+pub(crate) fn run_remote_artifact_task(task: &RemoteArtifactTask) -> Result<(), String> {
     ensure_remote_artifact(
         &task.url,
         &task.target_path,
@@ -398,7 +428,7 @@ fn run_remote_artifact_task(task: &RemoteArtifactTask) -> Result<(), String> {
     .map_err(|error| format!("{}: {error}", task.error_context))
 }
 
-fn ensure_remote_artifacts_parallel<F>(
+pub(crate) fn ensure_remote_artifacts_parallel<F>(
     tasks: Vec<RemoteArtifactTask>,
     mut on_task_finished: F,
 ) -> Result<(), String>
@@ -474,7 +504,7 @@ where
     Ok(())
 }
 
-fn push_unique_download_task(
+pub(crate) fn push_unique_download_task(
     tasks: &mut Vec<RemoteArtifactTask>,
     seen_targets: &mut HashSet<PathBuf>,
     task: RemoteArtifactTask,
@@ -484,7 +514,7 @@ fn push_unique_download_task(
     }
 }
 
-fn library_allowed_on_windows(library: &Value) -> bool {
+pub(crate) fn library_allowed_on_windows(library: &Value) -> bool {
     let Some(rules) = library.get("rules").and_then(Value::as_array) else {
         return true;
     };
@@ -510,7 +540,7 @@ fn library_allowed_on_windows(library: &Value) -> bool {
     allowed
 }
 
-fn flatten_argument_list(raw_arguments: Option<&Value>) -> Vec<String> {
+pub(crate) fn flatten_argument_list(raw_arguments: Option<&Value>) -> Vec<String> {
     let mut args = Vec::new();
 
     for entry in raw_arguments
@@ -539,7 +569,11 @@ fn flatten_argument_list(raw_arguments: Option<&Value>) -> Vec<String> {
     args
 }
 
-fn normalize_launch_args(args: Vec<String>, version_id: &str, asset_index_name: &str) -> Vec<String> {
+pub(crate) fn normalize_launch_args(
+    args: Vec<String>,
+    version_id: &str,
+    asset_index_name: &str,
+) -> Vec<String> {
     let mut normalized = Vec::new();
     let mut index = 0;
 
@@ -581,7 +615,7 @@ fn normalize_launch_args(args: Vec<String>, version_id: &str, asset_index_name: 
     normalized
 }
 
-fn latest_fabric_loader_version(minecraft_version: &str) -> Result<String, String> {
+pub(crate) fn latest_fabric_loader_version(minecraft_version: &str) -> Result<String, String> {
     let url = format!("https://meta.fabricmc.net/v2/versions/loader/{minecraft_version}");
     let versions = read_remote_json(&url)?;
 
@@ -594,8 +628,9 @@ fn latest_fabric_loader_version(minecraft_version: &str) -> Result<String, Strin
         .ok_or_else(|| format!("Fabric loader 버전을 찾지 못했습니다: {minecraft_version}"))
 }
 
-fn minecraft_version_metadata(minecraft_version: &str) -> Result<Value, String> {
-    let manifest = read_remote_json("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")?;
+pub(crate) fn minecraft_version_metadata(minecraft_version: &str) -> Result<Value, String> {
+    let manifest =
+        read_remote_json("https://piston-meta.mojang.com/mc/game/version_manifest_v2.json")?;
     let version_url = manifest
         .get("versions")
         .and_then(Value::as_array)
@@ -606,12 +641,14 @@ fn minecraft_version_metadata(minecraft_version: &str) -> Result<Value, String> 
                     .flatten()
             })
         })
-        .ok_or_else(|| format!("Minecraft version manifest를 찾지 못했습니다: {minecraft_version}"))?;
+        .ok_or_else(|| {
+            format!("Minecraft version manifest를 찾지 못했습니다: {minecraft_version}")
+        })?;
 
     read_remote_json(version_url)
 }
 
-fn maven_library_download_task(
+pub(crate) fn maven_library_download_task(
     libraries_root: &Path,
     library: &Value,
 ) -> Result<Option<(RemoteArtifactTask, String)>, String> {
@@ -623,7 +660,10 @@ fn maven_library_download_task(
         let artifact_path = descriptor_string(artifact, "path")?.to_string();
         let artifact_relative_path = validated_artifact_relative_path(&artifact_path)?;
         let target_path = libraries_root.join(&artifact_relative_path);
-        let classpath_entry = format!("libraries/{}", artifact_relative_path.to_string_lossy().replace('\\', "/"));
+        let classpath_entry = format!(
+            "libraries/{}",
+            artifact_relative_path.to_string_lossy().replace('\\', "/")
+        );
         let task = remote_artifact_task(
             descriptor_string(artifact, "url")?,
             target_path,
@@ -657,7 +697,7 @@ fn maven_library_download_task(
     Ok(Some((task, classpath_entry)))
 }
 
-fn native_library_download_task(
+pub(crate) fn native_library_download_task(
     libraries_root: &Path,
     library: &Value,
 ) -> Result<Option<(RemoteArtifactTask, String, PathBuf)>, String> {
@@ -681,9 +721,7 @@ fn native_library_download_task(
             "32"
         },
     );
-    let Some(classifier) = library
-        .pointer(&format!("/downloads/classifiers/{native_key}"))
-    else {
+    let Some(classifier) = library.pointer(&format!("/downloads/classifiers/{native_key}")) else {
         return Ok(None);
     };
     let artifact_path = descriptor_string(classifier, "path")?.to_string();
@@ -701,7 +739,7 @@ fn native_library_download_task(
     Ok(Some((task, artifact_path, target_path)))
 }
 
-fn ensure_minecraft_libraries_parallel(
+pub(crate) fn ensure_minecraft_libraries_parallel(
     libraries_root: &Path,
     natives_root: &Path,
     libraries: &[Value],
@@ -714,8 +752,7 @@ fn ensure_minecraft_libraries_parallel(
     let mut seen_native_archives = HashSet::new();
 
     for library in libraries {
-        if let Some((task, classpath_entry)) =
-            maven_library_download_task(libraries_root, library)?
+        if let Some((task, classpath_entry)) = maven_library_download_task(libraries_root, library)?
         {
             classpath_entries.push(classpath_entry);
             push_unique_download_task(&mut downloads, &mut seen_targets, task);
@@ -735,20 +772,16 @@ fn ensure_minecraft_libraries_parallel(
     classpath.extend(classpath_entries);
 
     for (artifact_path, target_path) in native_archives {
-        extract_zip_file_with_limits(
-            &target_path,
-            natives_root,
-            NATIVE_ZIP_EXTRACTION_LIMITS,
-        )
-        .map_err(|error| {
-            format!("Minecraft native 라이브러리 압축 해제 실패 ({artifact_path}): {error}")
-        })?;
+        extract_zip_file_with_limits(&target_path, natives_root, NATIVE_ZIP_EXTRACTION_LIMITS)
+            .map_err(|error| {
+                format!("Minecraft native 라이브러리 압축 해제 실패 ({artifact_path}): {error}")
+            })?;
     }
 
     Ok(())
 }
 
-fn ensure_maven_libraries_parallel(
+pub(crate) fn ensure_maven_libraries_parallel(
     libraries_root: &Path,
     libraries: &[Value],
     classpath: &mut Vec<String>,
@@ -758,8 +791,7 @@ fn ensure_maven_libraries_parallel(
     let mut classpath_entries = Vec::new();
 
     for library in libraries {
-        if let Some((task, classpath_entry)) =
-            maven_library_download_task(libraries_root, library)?
+        if let Some((task, classpath_entry)) = maven_library_download_task(libraries_root, library)?
         {
             classpath_entries.push(classpath_entry);
             push_unique_download_task(&mut downloads, &mut seen_targets, task);
@@ -771,7 +803,7 @@ fn ensure_maven_libraries_parallel(
     Ok(())
 }
 
-fn minecraft_asset_file_name(asset_name: &str, hash: &str) -> String {
+pub(crate) fn minecraft_asset_file_name(asset_name: &str, hash: &str) -> String {
     Path::new(asset_name)
         .file_name()
         .and_then(|file_name| file_name.to_str())
@@ -780,7 +812,7 @@ fn minecraft_asset_file_name(asset_name: &str, hash: &str) -> String {
         .to_string()
 }
 
-fn ensure_minecraft_assets(
+pub(crate) fn ensure_minecraft_assets(
     app: &tauri::AppHandle,
     assets_root: &Path,
     version_json: &Value,
@@ -822,7 +854,11 @@ fn ensure_minecraft_assets(
         }
 
         let object_path = assets_root.join("objects").join(&hash[0..2]).join(hash);
-        let url = format!("https://resources.download.minecraft.net/{}/{}", &hash[0..2], hash);
+        let url = format!(
+            "https://resources.download.minecraft.net/{}/{}",
+            &hash[0..2],
+            hash
+        );
         let mut task = remote_artifact_task(
             &url,
             object_path.clone(),
@@ -850,7 +886,7 @@ fn ensure_minecraft_assets(
     Ok(asset_index_id)
 }
 
-fn ensure_fabric_remote_client_installed(
+pub(crate) fn ensure_fabric_remote_client_installed(
     app: &tauri::AppHandle,
     data_directory: &Path,
     server_manifest: &Value,
@@ -872,8 +908,13 @@ fn ensure_fabric_remote_client_installed(
     );
 
     let staged_path = profile_staged_path(data_directory, channel);
-    fs::create_dir_all(&staged_path)
-        .map_err(|error| io_error("Fabric staged 폴더를 만들지 못했습니다", &staged_path, error))?;
+    fs::create_dir_all(&staged_path).map_err(|error| {
+        io_error(
+            "Fabric staged 폴더를 만들지 못했습니다",
+            &staged_path,
+            error,
+        )
+    })?;
 
     emit_launch_state(app, "Minecraft 설치 1/5: 실행 정보 확인", 0.58);
     let metadata_root = data_directory
@@ -882,11 +923,7 @@ fn ensure_fabric_remote_client_installed(
         .join(minecraft_version);
     let version_json_path = metadata_root.join("version.json");
     let version_json = match read_json_file(&version_json_path) {
-        Ok(value)
-            if value.get("id").and_then(Value::as_str) == Some(minecraft_version) =>
-        {
-            value
-        }
+        Ok(value) if value.get("id").and_then(Value::as_str) == Some(minecraft_version) => value,
         _ => {
             let value = minecraft_version_metadata(minecraft_version)?;
             write_json_state_atomic(&version_json_path, &value, "Minecraft version metadata")?;
@@ -895,14 +932,7 @@ fn ensure_fabric_remote_client_installed(
     };
     let fabric_profile_path = metadata_root.join(format!("fabric-{loader_version}.json"));
     let fabric_profile = match read_json_file(&fabric_profile_path) {
-        Ok(value)
-            if value
-                .get("mainClass")
-                .and_then(Value::as_str)
-                .is_some() =>
-        {
-            value
-        }
+        Ok(value) if value.get("mainClass").and_then(Value::as_str).is_some() => value,
         _ => {
             let value = read_remote_json(&fabric_profile_url)?;
             write_json_state_atomic(&fabric_profile_path, &value, "Fabric profile metadata")?;
@@ -916,12 +946,27 @@ fn ensure_fabric_remote_client_installed(
     let natives_root = game_root.join("natives");
     let versions_root = game_root.join("versions").join(minecraft_version);
     let assets_root = game_root.join("assets");
-    fs::create_dir_all(&libraries_root)
-        .map_err(|error| io_error("Minecraft libraries 폴더를 만들지 못했습니다", &libraries_root, error))?;
-    fs::create_dir_all(&natives_root)
-        .map_err(|error| io_error("Minecraft natives 폴더를 만들지 못했습니다", &natives_root, error))?;
-    fs::create_dir_all(&versions_root)
-        .map_err(|error| io_error("Minecraft versions 폴더를 만들지 못했습니다", &versions_root, error))?;
+    fs::create_dir_all(&libraries_root).map_err(|error| {
+        io_error(
+            "Minecraft libraries 폴더를 만들지 못했습니다",
+            &libraries_root,
+            error,
+        )
+    })?;
+    fs::create_dir_all(&natives_root).map_err(|error| {
+        io_error(
+            "Minecraft natives 폴더를 만들지 못했습니다",
+            &natives_root,
+            error,
+        )
+    })?;
+    fs::create_dir_all(&versions_root).map_err(|error| {
+        io_error(
+            "Minecraft versions 폴더를 만들지 못했습니다",
+            &versions_root,
+            error,
+        )
+    })?;
     apply_client_config_options(&game_root)?;
 
     emit_launch_state(app, "Minecraft 설치 2/5: 기본 라이브러리", 0.64);
@@ -1021,16 +1066,13 @@ fn ensure_fabric_remote_client_installed(
     write_normalized_launch_profile(&launch_profile_path, launch_profile)?;
 
     emit_launch_state(app, "게임 파일 적용", 0.88);
-    replace_directory_atomic(
-        &profile_root_path(),
-        &staged_path,
-    )?;
+    replace_directory_atomic(&profile_root_path(), &staged_path)?;
     remove_path_if_exists(&profile_staged_root_path(data_directory))?;
     cleanup_empty_launcher_cache_dirs(data_directory);
     verify_profile_installation()
 }
 
-fn verify_profile_installation() -> Result<PathBuf, String> {
+pub(crate) fn verify_profile_installation() -> Result<PathBuf, String> {
     let current_path = profile_root_path();
     let launch_profile_path = current_path.join("launch-profile.json");
 
@@ -1047,7 +1089,10 @@ fn verify_profile_installation() -> Result<PathBuf, String> {
     Ok(current_path)
 }
 
-fn write_launch_profile_from_channel(staged_path: &Path, channel: &Value) -> Result<(), String> {
+pub(crate) fn write_launch_profile_from_channel(
+    staged_path: &Path,
+    channel: &Value,
+) -> Result<(), String> {
     let launch_profile_path = staged_path.join("launch-profile.json");
 
     if launch_profile_path.exists() {
@@ -1064,7 +1109,9 @@ fn write_launch_profile_from_channel(staged_path: &Path, channel: &Value) -> Res
     write_normalized_launch_profile(&launch_profile_path, launch_profile.clone())
 }
 
-fn ensure_required_launch_profile_fields(launch_profile_path: &Path) -> Result<(), String> {
+pub(crate) fn ensure_required_launch_profile_fields(
+    launch_profile_path: &Path,
+) -> Result<(), String> {
     let launch_profile = read_json_file(launch_profile_path)?;
 
     for field in [
@@ -1077,24 +1124,61 @@ fn ensure_required_launch_profile_fields(launch_profile_path: &Path) -> Result<(
         "assetsDirectory",
         "nativesDirectory",
     ] {
-        descriptor_string(&launch_profile, field)?;
+        let value = descriptor_string(&launch_profile, field)?;
+        if matches!(
+            field,
+            "gameDirectory" | "assetsDirectory" | "nativesDirectory"
+        ) {
+            validate_launch_profile_relative_path(field, value)?;
+        }
     }
 
-    if value_string_vec(launch_profile.get("classpath")).is_empty() {
+    let classpath = value_string_vec(launch_profile.get("classpath"));
+    if classpath.is_empty() {
         return Err("launch-profile.json classpath 항목이 비어 있습니다.".to_string());
+    }
+    for entry in &classpath {
+        validate_launch_profile_relative_path("classpath", entry)?;
     }
 
     if value_string_vec(launch_profile.get("gameArgs"))
         .iter()
-        .any(|arg| arg == "--demo" || arg.starts_with("--quickPlay") || arg.starts_with("${quickPlay"))
+        .any(|arg| {
+            arg == "--demo" || arg.starts_with("--quickPlay") || arg.starts_with("${quickPlay")
+        })
     {
-        return Err("launch-profile.json에 레거시 quick play 또는 demo 인자가 남아 있습니다.".to_string());
+        return Err(
+            "launch-profile.json에 레거시 quick play 또는 demo 인자가 남아 있습니다.".to_string(),
+        );
     }
 
     Ok(())
 }
 
-fn normalize_profile_relative_path(value: &str) -> String {
+pub(crate) fn validate_launch_profile_relative_path(
+    field: &str,
+    value: &str,
+) -> Result<(), String> {
+    let path = Path::new(value);
+    if value.trim().is_empty()
+        || path.is_absolute()
+        || path.components().any(|component| {
+            matches!(
+                component,
+                std::path::Component::ParentDir
+                    | std::path::Component::RootDir
+                    | std::path::Component::Prefix(_)
+            )
+        })
+    {
+        return Err(format!(
+            "launch-profile.json {field} 경로는 번들 내부 상대 경로여야 합니다: {value}"
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn normalize_profile_relative_path(value: &str) -> String {
     let normalized = value.replace('\\', "/");
 
     if normalized == "game/.minecraft" {
@@ -1107,7 +1191,7 @@ fn normalize_profile_relative_path(value: &str) -> String {
         .to_string()
 }
 
-fn normalize_profile_launch_profile(launch_profile: &mut Value) {
+pub(crate) fn normalize_profile_launch_profile(launch_profile: &mut Value) {
     let Some(profile) = launch_profile.as_object_mut() else {
         return;
     };
@@ -1131,7 +1215,10 @@ fn normalize_profile_launch_profile(launch_profile: &mut Value) {
     }
 }
 
-fn write_normalized_launch_profile(path: &Path, mut launch_profile: Value) -> Result<(), String> {
+pub(crate) fn write_normalized_launch_profile(
+    path: &Path,
+    mut launch_profile: Value,
+) -> Result<(), String> {
     normalize_profile_launch_profile(&mut launch_profile);
     ensure_parent_dir(path)?;
     fs::write(
@@ -1144,7 +1231,7 @@ fn write_normalized_launch_profile(path: &Path, mut launch_profile: Value) -> Re
     .map_err(|error| io_error("launch-profile.json 파일을 쓰지 못했습니다", path, error))
 }
 
-fn migrate_legacy_client_profile_if_needed(
+pub(crate) fn migrate_legacy_client_profile_if_needed(
     data_directory: &Path,
     server_manifest: &Value,
 ) -> Result<(), String> {
@@ -1156,8 +1243,13 @@ fn migrate_legacy_client_profile_if_needed(
 
     if !profile_path.exists() && legacy_data_profile_path.exists() {
         if let Some(parent) = profile_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| io_error("Minecraft 프로필 상위 폴더를 만들지 못했습니다", parent, error))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                io_error(
+                    "Minecraft 프로필 상위 폴더를 만들지 못했습니다",
+                    parent,
+                    error,
+                )
+            })?;
         }
 
         fs::rename(&legacy_data_profile_path, &profile_path).map_err(|error| {
@@ -1174,8 +1266,13 @@ fn migrate_legacy_client_profile_if_needed(
 
     if !profile_path.exists() && legacy_profile_path.exists() {
         if let Some(parent) = profile_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| io_error("Minecraft 프로필 상위 폴더를 만들지 못했습니다", parent, error))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                io_error(
+                    "Minecraft 프로필 상위 폴더를 만들지 못했습니다",
+                    parent,
+                    error,
+                )
+            })?;
         }
 
         fs::rename(&legacy_profile_path, &profile_path).map_err(|error| {
@@ -1192,7 +1289,8 @@ fn migrate_legacy_client_profile_if_needed(
 
     let launch_profile_path = profile_path.join("launch-profile.json");
 
-    if profile_path.exists() && !launch_profile_path.exists() && legacy_launch_profile_path.exists() {
+    if profile_path.exists() && !launch_profile_path.exists() && legacy_launch_profile_path.exists()
+    {
         let legacy_launch_profile = read_json_file(&legacy_launch_profile_path)?;
         write_normalized_launch_profile(&launch_profile_path, legacy_launch_profile)?;
     }
@@ -1208,7 +1306,7 @@ fn migrate_legacy_client_profile_if_needed(
     Ok(())
 }
 
-fn ensure_client_bundle_installed(
+pub(crate) fn ensure_client_bundle_installed(
     app: &tauri::AppHandle,
     data_directory: &Path,
     server_manifest: &Value,
@@ -1258,11 +1356,7 @@ fn ensure_client_bundle_installed(
 
     emit_launch_state(app, "게임 파일 압축 해제", 0.80);
     let staged_path = profile_staged_path(data_directory, channel);
-    extract_zip_archive(
-        &download_path,
-        &staged_path,
-        CLIENT_ZIP_EXTRACTION_LIMITS,
-    )?;
+    extract_zip_archive(&download_path, &staged_path, CLIENT_ZIP_EXTRACTION_LIMITS)?;
     write_launch_profile_from_channel(&staged_path, channel)?;
 
     let launch_profile_path = staged_path.join("launch-profile.json");
@@ -1278,11 +1372,27 @@ fn ensure_client_bundle_installed(
     }
 
     emit_launch_state(app, "게임 파일 적용", 0.88);
-    replace_directory_atomic(
-        &profile_root_path(),
-        &staged_path,
-    )?;
+    replace_directory_atomic(&profile_root_path(), &staged_path)?;
     remove_path_if_exists(&profile_staged_root_path(data_directory))?;
     cleanup_empty_launcher_cache_dirs(data_directory);
     verify_profile_installation()
+}
+
+#[cfg(test)]
+mod launch_profile_path_tests {
+    use super::*;
+
+    #[test]
+    fn accepts_bundle_relative_paths() {
+        assert!(validate_launch_profile_relative_path("gameDirectory", ".").is_ok());
+        assert!(
+            validate_launch_profile_relative_path("classpath", "libraries/example.jar").is_ok()
+        );
+    }
+
+    #[test]
+    fn rejects_paths_outside_the_bundle() {
+        assert!(validate_launch_profile_relative_path("gameDirectory", "../outside").is_err());
+        assert!(validate_launch_profile_relative_path("classpath", "C:\\outside.jar").is_err());
+    }
 }

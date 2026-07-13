@@ -1,4 +1,6 @@
-const MINECRAFT_INSTALL_STAGES: [&str; 5] = [
+use crate::*;
+
+pub(crate) const MINECRAFT_INSTALL_STAGES: [&str; 5] = [
     "minecraft-1-metadata",
     "minecraft-2-libraries",
     "minecraft-3-fabric",
@@ -6,7 +8,7 @@ const MINECRAFT_INSTALL_STAGES: [&str; 5] = [
     "minecraft-5-assets",
 ];
 
-fn migrate_legacy_install_state(data_directory: &Path) -> Result<(), String> {
+pub(crate) fn migrate_legacy_install_state(data_directory: &Path) -> Result<(), String> {
     let path = launcher_install_state_path();
     let legacy_path = legacy_install_state_path(data_directory);
 
@@ -34,15 +36,15 @@ fn migrate_legacy_install_state(data_directory: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn state_temp_path(path: &Path) -> PathBuf {
+pub(crate) fn state_temp_path(path: &Path) -> PathBuf {
     path.with_extension("json.tmp")
 }
 
-fn state_backup_path(path: &Path) -> PathBuf {
+pub(crate) fn state_backup_path(path: &Path) -> PathBuf {
     path.with_extension("json.bak")
 }
 
-fn recover_json_state_file(path: &Path) -> Result<(), String> {
+pub(crate) fn recover_json_state_file(path: &Path) -> Result<(), String> {
     ensure_parent_dir(path)?;
     let temp_path = state_temp_path(path);
     let backup_path = state_backup_path(path);
@@ -90,7 +92,7 @@ fn recover_json_state_file(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn load_install_state(data_directory: &Path) -> Result<Option<Value>, String> {
+pub(crate) fn load_install_state(data_directory: &Path) -> Result<Option<Value>, String> {
     migrate_legacy_install_state(data_directory)?;
     let path = launcher_install_state_path();
     recover_json_state_file(&path)?;
@@ -102,7 +104,11 @@ fn load_install_state(data_directory: &Path) -> Result<Option<Value>, String> {
     read_json_file(&path).map(Some)
 }
 
-fn write_json_state_atomic(path: &Path, state: &Value, label: &str) -> Result<(), String> {
+pub(crate) fn write_json_state_atomic(
+    path: &Path,
+    state: &Value,
+    label: &str,
+) -> Result<(), String> {
     recover_json_state_file(path)?;
     let temp_path = state_temp_path(path);
     let backup_path = state_backup_path(path);
@@ -113,12 +119,27 @@ fn write_json_state_atomic(path: &Path, state: &Value, label: &str) -> Result<()
         "{}\n",
         serde_json::to_string_pretty(state).map_err(|error| error.to_string())?
     );
-    let mut file = File::create(&temp_path)
-        .map_err(|error| io_error(&format!("{label} 임시 파일을 만들지 못했습니다"), &temp_path, error))?;
-    file.write_all(content.as_bytes())
-        .map_err(|error| io_error(&format!("{label} 임시 파일을 쓰지 못했습니다"), &temp_path, error))?;
-    file.sync_all()
-        .map_err(|error| io_error(&format!("{label} 임시 파일을 동기화하지 못했습니다"), &temp_path, error))?;
+    let mut file = File::create(&temp_path).map_err(|error| {
+        io_error(
+            &format!("{label} 임시 파일을 만들지 못했습니다"),
+            &temp_path,
+            error,
+        )
+    })?;
+    file.write_all(content.as_bytes()).map_err(|error| {
+        io_error(
+            &format!("{label} 임시 파일을 쓰지 못했습니다"),
+            &temp_path,
+            error,
+        )
+    })?;
+    file.sync_all().map_err(|error| {
+        io_error(
+            &format!("{label} 임시 파일을 동기화하지 못했습니다"),
+            &temp_path,
+            error,
+        )
+    })?;
 
     if path.exists() {
         fs::rename(path, &backup_path).map_err(|error| {
@@ -150,16 +171,16 @@ fn write_json_state_atomic(path: &Path, state: &Value, label: &str) -> Result<()
     remove_path_if_exists(&backup_path)
 }
 
-fn save_install_state(data_directory: &Path, state: &Value) -> Result<(), String> {
+pub(crate) fn save_install_state(data_directory: &Path, state: &Value) -> Result<(), String> {
     migrate_legacy_install_state(data_directory)?;
     write_json_state_atomic(&launcher_install_state_path(), state, "설치 상태")
 }
 
-fn launcher_install_checkpoint_path() -> PathBuf {
+pub(crate) fn launcher_install_checkpoint_path() -> PathBuf {
     storage_root_path().join("install-checkpoint.json")
 }
 
-fn load_or_create_install_checkpoint(identity: &Value) -> Result<(Value, bool), String> {
+pub(crate) fn load_or_create_install_checkpoint(identity: &Value) -> Result<(Value, bool), String> {
     let path = launcher_install_checkpoint_path();
     recover_json_state_file(&path)?;
     let existing = if path.exists() {
@@ -187,14 +208,14 @@ fn load_or_create_install_checkpoint(identity: &Value) -> Result<(Value, bool), 
     Ok((checkpoint, true))
 }
 
-fn install_checkpoint_completed(checkpoint: &Value, stage: &str) -> bool {
+pub(crate) fn install_checkpoint_completed(checkpoint: &Value, stage: &str) -> bool {
     checkpoint
         .get("completedStages")
         .and_then(Value::as_array)
         .is_some_and(|stages| stages.iter().any(|value| value.as_str() == Some(stage)))
 }
 
-fn mark_install_checkpoint(checkpoint: &mut Value, stage: &str) -> Result<(), String> {
+pub(crate) fn mark_install_checkpoint(checkpoint: &mut Value, stage: &str) -> Result<(), String> {
     let object = checkpoint
         .as_object_mut()
         .ok_or_else(|| "설치 체크포인트 형식이 올바르지 않습니다.".to_string())?;
@@ -224,14 +245,14 @@ mod install_checkpoint_tests {
     use super::*;
 
     #[test]
-    fn minecraft_install_has_five_ordered_stages() {
+    pub(crate) fn minecraft_install_has_five_ordered_stages() {
         assert_eq!(MINECRAFT_INSTALL_STAGES.len(), 5);
         assert_eq!(MINECRAFT_INSTALL_STAGES[0], "minecraft-1-metadata");
         assert_eq!(MINECRAFT_INSTALL_STAGES[4], "minecraft-5-assets");
     }
 
     #[test]
-    fn completed_stage_lookup_is_exact() {
+    pub(crate) fn completed_stage_lookup_is_exact() {
         let checkpoint = json!({
             "completedStages": ["runtime", "minecraft-1-metadata"]
         });
@@ -248,7 +269,7 @@ mod install_checkpoint_tests {
     }
 
     #[test]
-    fn recovers_a_synced_temporary_state_file() {
+    pub(crate) fn recovers_a_synced_temporary_state_file() {
         let directory = std::env::temp_dir().join(format!(
             "star-prison-checkpoint-test-{}-{}",
             std::process::id(),

@@ -15,6 +15,7 @@ const state = createInitialState()
 const PAGE_SCROLL_MULTIPLIER = 5
 const BACKGROUND_PARALLAX_RANGE = 2
 const FALLING_CHICK_REMOVE_BUFFER_MS = 400
+let mountedViewName = null
 const launcherController = createLauncherController({
     state,
     render,
@@ -235,6 +236,64 @@ function preloadAccountSkin(){
     image.src = skinUrls.head
 }
 
+function syncElementState(current, next){
+    for(const attribute of [...current.attributes]){
+        if(!next.hasAttribute(attribute.name)){
+            current.removeAttribute(attribute.name)
+        }
+    }
+
+    for(const attribute of next.attributes){
+        if(current.getAttribute(attribute.name) !== attribute.value){
+            current.setAttribute(attribute.name, attribute.value)
+        }
+    }
+
+    if(current !== document.activeElement && 'value' in current && current.value !== next.value){
+        current.value = next.value
+    }
+    if('checked' in current && current.checked !== next.checked){
+        current.checked = next.checked
+    }
+    if('disabled' in current && current.disabled !== next.disabled){
+        current.disabled = next.disabled
+    }
+}
+
+function patchDomNode(current, next){
+    if(current.nodeType !== next.nodeType || current.nodeName !== next.nodeName){
+        current.replaceWith(next)
+        return next
+    }
+
+    if(current.nodeType === Node.TEXT_NODE){
+        if(current.nodeValue !== next.nodeValue){
+            current.nodeValue = next.nodeValue
+        }
+        return current
+    }
+
+    syncElementState(current, next)
+    const currentChildren = [...current.childNodes]
+    const nextChildren = [...next.childNodes]
+    const childCount = Math.max(currentChildren.length, nextChildren.length)
+
+    for(let index = 0; index < childCount; index += 1){
+        const currentChild = currentChildren[index]
+        const nextChild = nextChildren[index]
+
+        if(currentChild == null){
+            current.appendChild(nextChild)
+        } else if(nextChild == null){
+            currentChild.remove()
+        } else {
+            patchDomNode(currentChild, nextChild)
+        }
+    }
+
+    return current
+}
+
 function render(){
     const renderer = views[state.activeView]
     const viewHost = document.getElementById('view-host')
@@ -245,8 +304,15 @@ function render(){
     renderStatusCard()
     renderWindowControls()
 
-    viewHost.replaceChildren(renderer(state))
-    bindViewActions()
+    const nextView = renderer(state)
+
+    if(mountedViewName !== state.activeView || viewHost.firstChild == null){
+        viewHost.replaceChildren(nextView)
+        mountedViewName = state.activeView
+        return
+    }
+
+    patchDomNode(viewHost.firstChild, nextView)
 }
 
 function buildLiquidDemoOverlay(){
@@ -415,101 +481,102 @@ function navigateToLanding(){
     render()
 }
 
-function bindExternalLinkActions(){
-    document.querySelectorAll('[data-external-url]').forEach(button => {
-        button.addEventListener('click', async () => {
-            const url = button.dataset.externalUrl
+async function handleDelegatedViewClick(event){
+    const viewHost = document.getElementById('view-host')
+    const target = event.target.closest?.('button, input, [data-external-url], [data-nav-target], [data-managed-directory]')
+
+    if(target == null || !viewHost.contains(target)){
+        return
+    }
+
+    try {
+        const externalTarget = target.closest?.('[data-external-url]')
+
+        if(externalTarget != null){
+            const url = externalTarget.dataset.externalUrl
 
             if(typeof url !== 'string' || url.trim().length === 0){
                 return
             }
 
-            button.disabled = true
-
+            externalTarget.disabled = true
             try {
                 await window.starPrisonLauncher.openExternal(url)
-            } catch (error) {
-                showOverlay({
-                    title: '링크 열기 실패',
-                    body: overlayParagraph(error.message)
-                })
             } finally {
-                button.disabled = false
+                externalTarget.disabled = false
             }
+            return
+        }
+
+        if(target.closest?.('.back-to-landing-button') != null){
+            navigateToLanding()
+            return
+        }
+
+        const navigationTarget = target.closest?.('[data-nav-target]')?.dataset.navTarget
+        if(typeof navigationTarget === 'string'){
+            if(Object.hasOwn(views, navigationTarget)){
+                state.activeView = navigationTarget
+                render()
+            }
+            return
+        }
+
+        const managedDirectoryButton = target.closest?.('[data-managed-directory]')
+        if(managedDirectoryButton != null){
+            await settingController.handleManagedDirectoryClick({ currentTarget: managedDirectoryButton })
+            return
+        }
+
+        switch(target.id){
+        case 'landing-login-button':
+            await launcherController.handleLaunchButtonClick()
+            break
+        case 'sign-in-button':
+            await handleSignIn()
+            break
+        case 'sign-out-button':
+            await handleSignOut()
+            break
+        case 'settings-reset-button':
+            settingController.promptResetSettings()
+            break
+        case 'data-directory-input':
+            await settingController.handleSelectDataDirectory()
+            break
+        default:
+            break
+        }
+    } catch (error) {
+        showOverlay({
+            title: '작업 실패',
+            body: overlayParagraph(error.message)
         })
-    })
+    }
 }
 
-function bindViewActions(){
+function bindPersistentActions(){
+    const viewHost = document.getElementById('view-host')
+
     bindLaunchReadyChickFall()
-
-    document.querySelectorAll('.back-to-landing-button').forEach(button => {
-        button.onclick = navigateToLanding
+    viewHost.addEventListener('click', event => {
+        void handleDelegatedViewClick(event)
     })
-
-    bindExternalLinkActions()
+    viewHost.addEventListener('submit', event => {
+        if(event.target.id === 'settings-form'){
+            void settingController.handleSaveSettings(event)
+        }
+    })
 
     document.getElementById('window-minimize-button').onclick = () => {
         window.starPrisonLauncher.minimizeWindow()
     }
-
     document.getElementById('window-maximize-button').onclick = async () => {
         state.windowState = await window.starPrisonLauncher.toggleMaximizeWindow()
         renderWindowControls()
     }
-
     document.getElementById('window-close-button').onclick = () => {
         window.starPrisonLauncher.closeWindow()
-    }
-
-    if(state.activeView === 'login'){
-        const signInButton = document.getElementById('sign-in-button')
-        const signOutButton = document.getElementById('sign-out-button')
-
-        if(signInButton != null){
-            signInButton.onclick = handleSignIn
-        }
-
-        if(signOutButton != null){
-            signOutButton.onclick = handleSignOut
-        }
-    }
-
-    if(state.activeView === 'landing'){
-        document.querySelectorAll('[data-nav-target]').forEach(button => {
-            button.addEventListener('click', () => {
-                const nextView = button.dataset.navTarget
-
-                if(!Object.hasOwn(views, nextView)){
-                    return
-                }
-
-                state.activeView = nextView
-                render()
-            })
-        })
-
-        document.getElementById('landing-login-button')?.addEventListener('click', launcherController.handleLaunchButtonClick)
-    }
-
-    const signInButton = document.getElementById('sign-in-button')
-    const signOutButton = document.getElementById('sign-out-button')
-
-    if(signInButton != null){
-        signInButton.onclick = handleSignIn
-    }
-
-    if(signOutButton != null){
-        signOutButton.onclick = handleSignOut
-    }
-
-    if(state.activeView === 'settings'){
-        document.getElementById('settings-form').addEventListener('submit', settingController.handleSaveSettings)
-        document.getElementById('settings-reset-button')?.addEventListener('click', settingController.promptResetSettings)
-        document.getElementById('data-directory-input')?.addEventListener('click', settingController.handleSelectDataDirectory)
-        document.querySelectorAll('[data-managed-directory]').forEach(button => {
-            button.addEventListener('click', settingController.handleManagedDirectoryClick)
-        })
     }
 }
 
@@ -517,6 +584,7 @@ async function initialize(){
     state.activeView = getInitialView()
     bindAcceleratedPageScroll()
     bindBackgroundParallax()
+    bindPersistentActions()
 
     window.starPrisonLauncher.onWindowStateChanged(nextWindowState => {
         state.windowState = nextWindowState

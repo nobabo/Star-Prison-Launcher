@@ -1,4 +1,6 @@
-fn window_state(app: &tauri::AppHandle) -> WindowState {
+use crate::*;
+
+pub(crate) fn window_state(app: &tauri::AppHandle) -> WindowState {
     let maximized = app
         .get_webview_window("main")
         .and_then(|window| window.is_maximized().ok())
@@ -7,17 +9,17 @@ fn window_state(app: &tauri::AppHandle) -> WindowState {
     WindowState { maximized }
 }
 
-fn emit_window_state(app: &tauri::AppHandle) {
+pub(crate) fn emit_window_state(app: &tauri::AppHandle) {
     let _ = app.emit("window:state-changed", window_state(app));
 }
 
 #[tauri::command]
-fn get_bootstrap() -> Result<Value, CommandError> {
+pub(crate) fn get_bootstrap() -> Result<Value, CommandError> {
     build_bootstrap_payload().map_err(command_error)
 }
 
 #[tauri::command]
-async fn sign_in(app: tauri::AppHandle) -> Result<Value, CommandError> {
+pub(crate) async fn sign_in(app: tauri::AppHandle) -> Result<Value, CommandError> {
     if AUTH_PENDING
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -58,14 +60,16 @@ async fn sign_in(app: tauri::AppHandle) -> Result<Value, CommandError> {
 }
 
 #[tauri::command]
-fn sign_out() -> Result<Value, CommandError> {
+pub(crate) fn sign_out() -> Result<Value, CommandError> {
+    let _mutation_guard = lock_user_config_mutation().map_err(command_error)?;
     let mut user_config = load_or_create_user_config().map_err(command_error)?;
+    let previous = user_config.clone();
 
     if let Some(config) = user_config.as_object_mut() {
         config.insert("authSession".to_string(), Value::Null);
     }
 
-    save_user_config(&user_config).map_err(command_error)?;
+    save_user_config_if_changed(&previous, &user_config).map_err(command_error)?;
 
     Ok(json!({
         "ok": true,
@@ -74,7 +78,7 @@ fn sign_out() -> Result<Value, CommandError> {
 }
 
 #[tauri::command]
-fn select_data_directory(current_path: Option<String>) -> SelectDirectoryResult {
+pub(crate) fn select_data_directory(current_path: Option<String>) -> SelectDirectoryResult {
     let mut dialog = rfd::FileDialog::new().set_title("게임 저장 폴더 선택");
 
     if let Some(path) = current_path.filter(|path| !path.trim().is_empty()) {
@@ -93,11 +97,11 @@ fn select_data_directory(current_path: Option<String>) -> SelectDirectoryResult 
     }
 }
 
-fn managed_minecraft_profile_dir() -> Result<PathBuf, String> {
+pub(crate) fn managed_minecraft_profile_dir() -> Result<PathBuf, String> {
     Ok(profile_root_path())
 }
 
-fn managed_directory_path(kind: &str) -> Result<PathBuf, String> {
+pub(crate) fn managed_directory_path(kind: &str) -> Result<PathBuf, String> {
     let profile_dir = managed_minecraft_profile_dir()?;
 
     match kind {
@@ -108,7 +112,7 @@ fn managed_directory_path(kind: &str) -> Result<PathBuf, String> {
     }
 }
 
-fn open_directory(path: &Path) -> Result<(), String> {
+pub(crate) fn open_directory(path: &Path) -> Result<(), String> {
     #[cfg(windows)]
     {
         Command::new("explorer.exe")
@@ -138,9 +142,10 @@ fn open_directory(path: &Path) -> Result<(), String> {
 }
 
 #[tauri::command]
-fn open_managed_directory(kind: String) -> Result<Value, CommandError> {
+pub(crate) fn open_managed_directory(kind: String) -> Result<Value, CommandError> {
     let path = managed_directory_path(kind.trim()).map_err(command_error)?;
-    fs::create_dir_all(&path).map_err(|error| command_error(io_error("폴더를 만들지 못했습니다", &path, error)))?;
+    fs::create_dir_all(&path)
+        .map_err(|error| command_error(io_error("폴더를 만들지 못했습니다", &path, error)))?;
     open_directory(&path).map_err(command_error)?;
 
     Ok(json!({
@@ -149,7 +154,7 @@ fn open_managed_directory(kind: String) -> Result<Value, CommandError> {
     }))
 }
 
-const RISKY_JVM_ARG_PREFIXES: &[&str] = &[
+pub(crate) const RISKY_JVM_ARG_PREFIXES: &[&str] = &[
     "-javaagent",
     "-agentlib",
     "-agentpath",
@@ -166,7 +171,7 @@ const RISKY_JVM_ARG_PREFIXES: &[&str] = &[
     "--add-exports",
 ];
 
-const RISKY_GAME_ARG_NAMES: &[&str] = &[
+pub(crate) const RISKY_GAME_ARG_NAMES: &[&str] = &[
     "--accessToken",
     "--uuid",
     "--username",
@@ -179,19 +184,28 @@ const RISKY_GAME_ARG_NAMES: &[&str] = &[
     "--port",
 ];
 
-fn split_setting_args(value: &str) -> impl Iterator<Item = &str> {
-    value.split_whitespace().filter(|arg| !arg.is_empty())
+pub(crate) fn setting_args(value: Option<&Value>) -> impl Iterator<Item = &str> {
+    value
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|argument| !argument.is_empty())
 }
 
-fn matches_named_arg(arg: &str, name: &str) -> bool {
-    arg == name || arg.strip_prefix(name).is_some_and(|suffix| suffix.starts_with('='))
+pub(crate) fn matches_named_arg(arg: &str, name: &str) -> bool {
+    arg == name
+        || arg
+            .strip_prefix(name)
+            .is_some_and(|suffix| suffix.starts_with('='))
 }
 
-fn unsafe_settings_warnings(patch: &Map<String, Value>) -> Vec<String> {
+pub(crate) fn unsafe_settings_warnings(patch: &Map<String, Value>) -> Vec<String> {
     let mut warnings = Vec::new();
 
-    if let Some(extra_jvm_args) = patch.get("extraJvmArgs").and_then(Value::as_str) {
-        for arg in split_setting_args(extra_jvm_args) {
+    if patch.contains_key("extraJvmArgs") {
+        for arg in setting_args(patch.get("extraJvmArgs")) {
             if RISKY_JVM_ARG_PREFIXES
                 .iter()
                 .any(|prefix| arg.starts_with(prefix))
@@ -203,8 +217,8 @@ fn unsafe_settings_warnings(patch: &Map<String, Value>) -> Vec<String> {
         }
     }
 
-    if let Some(extra_game_args) = patch.get("extraGameArgs").and_then(Value::as_str) {
-        for arg in split_setting_args(extra_game_args) {
+    if patch.contains_key("extraGameArgs") {
+        for arg in setting_args(patch.get("extraGameArgs")) {
             if RISKY_GAME_ARG_NAMES
                 .iter()
                 .any(|name| matches_named_arg(arg, name))
@@ -219,7 +233,11 @@ fn unsafe_settings_warnings(patch: &Map<String, Value>) -> Vec<String> {
     warnings
 }
 
-fn validate_setting_string(key: &str, value: Value, max_len: usize) -> Result<Value, String> {
+pub(crate) fn validate_setting_string(
+    key: &str,
+    value: Value,
+    max_len: usize,
+) -> Result<Value, String> {
     let Some(text) = value.as_str() else {
         return Err(format!("{key} 설정은 문자열이어야 합니다."));
     };
@@ -231,7 +249,7 @@ fn validate_setting_string(key: &str, value: Value, max_len: usize) -> Result<Va
     Ok(Value::String(text.to_string()))
 }
 
-fn validate_setting_bool(key: &str, value: Value) -> Result<Value, String> {
+pub(crate) fn validate_setting_bool(key: &str, value: Value) -> Result<Value, String> {
     if !value.is_boolean() {
         return Err(format!("{key} 설정은 true/false 값이어야 합니다."));
     }
@@ -239,19 +257,47 @@ fn validate_setting_bool(key: &str, value: Value) -> Result<Value, String> {
     Ok(value)
 }
 
-fn validate_max_ram_mb(value: Value, minimum_ram_mb: u64) -> Result<Value, String> {
+pub(crate) fn validate_setting_args(key: &str, value: Value) -> Result<Value, String> {
+    pub(crate) const MAX_ARGUMENT_COUNT: usize = 128;
+    pub(crate) const MAX_ARGUMENT_LEN: usize = 4096;
+    let Some(arguments) = value.as_array() else {
+        return Err(format!("{key} 설정은 문자열 배열이어야 합니다."));
+    };
+    if arguments.len() > MAX_ARGUMENT_COUNT {
+        return Err(format!("{key} 설정의 인자 수가 너무 많습니다."));
+    }
+    let mut sanitized = Vec::with_capacity(arguments.len());
+    for argument in arguments {
+        let Some(argument) = argument.as_str() else {
+            return Err(format!("{key} 설정의 각 인자는 문자열이어야 합니다."));
+        };
+        let argument = argument.trim();
+        if argument.is_empty() {
+            continue;
+        }
+        if argument.len() > MAX_ARGUMENT_LEN {
+            return Err(format!("{key} 설정에 너무 긴 인자가 있습니다."));
+        }
+        sanitized.push(Value::String(argument.to_string()));
+    }
+    Ok(Value::Array(sanitized))
+}
+
+pub(crate) fn validate_max_ram_mb(value: Value, minimum_ram_mb: u64) -> Result<Value, String> {
     let Some(max_ram_mb) = value.as_u64() else {
         return Err("maxRamMb 설정은 숫자여야 합니다.".to_string());
     };
 
     if max_ram_mb < minimum_ram_mb || max_ram_mb > 131_072 {
-        return Err(format!("maxRamMb 설정은 {minimum_ram_mb}MB 이상 131072MB 이하이어야 합니다."));
+        return Err(format!(
+            "maxRamMb 설정은 {minimum_ram_mb}MB 이상 131072MB 이하이어야 합니다."
+        ));
     }
 
     Ok(Value::Number(max_ram_mb.into()))
 }
 
-fn validate_game_resolution(value: Value) -> Result<Value, String> {
+pub(crate) fn validate_game_resolution(value: Value) -> Result<Value, String> {
     let Some(text) = value.as_str() else {
         return Err("gameResolution 설정은 문자열이어야 합니다.".to_string());
     };
@@ -264,29 +310,20 @@ fn validate_game_resolution(value: Value) -> Result<Value, String> {
     Ok(Value::String(resolution.to_string()))
 }
 
-fn validate_settings_patch(
+pub(crate) fn validate_settings_patch(
     patch: Map<String, Value>,
-    unsafe_acknowledged: bool,
-) -> Result<Map<String, Value>, String> {
-    let warnings = unsafe_settings_warnings(&patch);
+) -> Result<(Map<String, Value>, Vec<String>), String> {
     let minimum_ram_mb = load_server_manifest()?
         .pointer("/java/minimumRamMb")
         .and_then(Value::as_u64)
         .unwrap_or(1024);
-
-    if !warnings.is_empty() && !unsafe_acknowledged {
-        return Err(format!(
-            "비권장 설정은 확인 후 저장할 수 있습니다. {}",
-            warnings.join(" ")
-        ));
-    }
 
     let mut sanitized = Map::new();
 
     for (key, value) in patch {
         let sanitized_value = match key.as_str() {
             "dataDirectory" => validate_setting_string(&key, value, 4096)?,
-            "extraJvmArgs" | "extraGameArgs" => validate_setting_string(&key, value, 4096)?,
+            "extraJvmArgs" | "extraGameArgs" => validate_setting_args(&key, value)?,
             "allowPrerelease" => validate_setting_bool(&key, value)?,
             "maxRamMb" => validate_max_ram_mb(value, minimum_ram_mb)?,
             "gameResolution" => validate_game_resolution(value)?,
@@ -296,17 +333,26 @@ fn validate_settings_patch(
         sanitized.insert(key, sanitized_value);
     }
 
-    Ok(sanitized)
+    let warnings = unsafe_settings_warnings(&sanitized);
+    Ok((sanitized, warnings))
 }
 
 #[tauri::command]
-fn save_settings(
+pub(crate) fn save_settings(
     patch: Map<String, Value>,
     unsafe_acknowledged: Option<bool>,
 ) -> Result<Value, CommandError> {
-    let patch =
-        validate_settings_patch(patch, unsafe_acknowledged.unwrap_or(false)).map_err(command_error)?;
+    let (patch, warnings) = validate_settings_patch(patch).map_err(command_error)?;
+    if !warnings.is_empty() && !unsafe_acknowledged.unwrap_or(false) {
+        return Ok(json!({
+            "ok": false,
+            "requiresConfirmation": true,
+            "warnings": warnings
+        }));
+    }
+    let _mutation_guard = lock_user_config_mutation().map_err(command_error)?;
     let mut user_config = load_or_create_user_config().map_err(command_error)?;
+    let previous = user_config.clone();
 
     if let Some(settings) = user_config
         .get_mut("settings")
@@ -317,12 +363,14 @@ fn save_settings(
         }
     }
 
-    save_user_config(&user_config).map_err(command_error)?;
-    build_bootstrap_payload().map_err(command_error)
+    save_user_config_if_changed(&previous, &user_config).map_err(command_error)?;
+    Ok(json!({
+        "ok": true,
+        "bootstrap": build_bootstrap_payload().map_err(command_error)?
+    }))
 }
 
-
-fn launch_blocking(app: tauri::AppHandle) -> Result<Value, CommandError> {
+pub(crate) fn launch_blocking(app: tauri::AppHandle) -> Result<Value, CommandError> {
     if LAUNCH_PENDING
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -368,26 +416,24 @@ fn launch_blocking(app: tauri::AppHandle) -> Result<Value, CommandError> {
 
     match result {
         Ok(result) => Ok(result),
-        Err(error) => {
-            Ok(json!({
-                "ok": false,
-                "mode": "failed",
-                "message": "Minecraft 실행을 시작하지 못했습니다.",
-                "errorDetail": error
-            }))
-        }
+        Err(error) => Ok(json!({
+            "ok": false,
+            "mode": "failed",
+            "message": "Minecraft 실행을 시작하지 못했습니다.",
+            "errorDetail": error
+        })),
     }
 }
 
 #[tauri::command]
-async fn launch(app: tauri::AppHandle) -> Result<Value, CommandError> {
+pub(crate) async fn launch(app: tauri::AppHandle) -> Result<Value, CommandError> {
     tauri::async_runtime::spawn_blocking(move || launch_blocking(app))
         .await
         .map_err(command_error)?
 }
 
 #[tauri::command]
-async fn terminate_minecraft() -> Result<Value, CommandError> {
+pub(crate) async fn terminate_minecraft() -> Result<Value, CommandError> {
     tauri::async_runtime::spawn_blocking(terminate_launched_minecraft)
         .await
         .map_err(command_error)?
@@ -395,193 +441,14 @@ async fn terminate_minecraft() -> Result<Value, CommandError> {
 }
 
 #[tauri::command]
-async fn submit_launcher_event(
-    event_type: String,
-    metadata: Map<String, Value>,
-) -> Result<Value, CommandError> {
-    tauri::async_runtime::spawn_blocking(move || submit_launcher_event_blocking(event_type, metadata))
-        .await
-        .map_err(command_error)?
-        .map_err(command_error)
-}
-
-fn submit_launcher_event_blocking(
-    event_type: String,
-    metadata: Map<String, Value>,
-) -> Result<Value, String> {
-    let event_type = event_type.trim();
-    if event_type.is_empty() || event_type.len() > 80 {
-        return Err("런처 이벤트 이름이 올바르지 않습니다.".to_string());
-    }
-
-    let app_config = load_app_config()?;
-    let Some((endpoint, token)) = launcher_companion_endpoint(&app_config)? else {
-        return Ok(json!({
-            "ok": true,
-            "submitted": false,
-            "skipped": true,
-            "reason": "launcher_companion_disabled"
-        }));
-    };
-
-    let user_config = load_or_create_user_config()?;
-    let auth = auth_summary(&user_config);
-    if !auth.signed_in {
-        return Ok(json!({
-            "ok": true,
-            "submitted": false,
-            "skipped": true,
-            "reason": "not_signed_in"
-        }));
-    }
-
-    let mut body = Map::new();
-    body.insert("eventType".to_string(), Value::String(event_type.to_string()));
-    body.insert("source".to_string(), Value::String("launcher".to_string()));
-
-    if let Some(player_name) = auth.player_name {
-        body.insert("playerName".to_string(), Value::String(player_name));
-    }
-
-    if let Some(profile_id) = auth.profile_id.and_then(|value| normalize_minecraft_uuid(&value)) {
-        body.insert("playerUuid".to_string(), Value::String(profile_id));
-    }
-
-    let sanitized_metadata = sanitize_launcher_event_metadata(metadata)?;
-    body.insert("metadata".to_string(), Value::Object(sanitized_metadata));
-
-    let client = reqwest::blocking::Client::builder()
-        .timeout(Duration::from_secs(3))
-        .build()
-        .map_err(|error| format!("런처 이벤트 HTTP client를 만들지 못했습니다: {error}"))?;
-    let response = client
-        .post(endpoint)
-        .bearer_auth(token)
-        .json(&Value::Object(body))
-        .send()
-        .map_err(|error| format!("런처 이벤트를 서버에 보내지 못했습니다: {error}"))?;
-    let status = response.status();
-    let payload = response
-        .json::<Value>()
-        .unwrap_or_else(|_| json!({ "ok": status.is_success() }));
-
-    if !status.is_success() {
-        return Ok(json!({
-            "ok": false,
-            "submitted": true,
-            "status": status.as_u16(),
-            "response": payload
-        }));
-    }
-
-    Ok(json!({
-        "ok": true,
-        "submitted": true,
-        "status": status.as_u16(),
-        "response": payload
-    }))
-}
-
-fn launcher_companion_endpoint(app_config: &Value) -> Result<Option<(Url, String)>, String> {
-    let Some(config) = app_config.get("launcherCompanion").and_then(Value::as_object) else {
-        return Ok(None);
-    };
-
-    if !config
-        .get("enabled")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-    {
-        return Ok(None);
-    }
-
-    let Some(base_url) = config
-        .get("apiBaseUrl")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        return Ok(None);
-    };
-    let Some(token) = config
-        .get("bearerToken")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    else {
-        return Ok(None);
-    };
-
-    let mut endpoint = Url::parse(base_url)
-        .map_err(|_| "런처 companion API 주소가 올바르지 않습니다.".to_string())?;
-    if endpoint.scheme() != "https" && endpoint.host_str() != Some("127.0.0.1") && endpoint.host_str() != Some("localhost") {
-        return Err("런처 companion API는 HTTPS 주소만 사용할 수 있습니다.".to_string());
-    }
-
-    let mut path = endpoint.path().trim_end_matches('/').to_string();
-    if !path.ends_with("/events/launcher") {
-        path.push_str("/events/launcher");
-    }
-    endpoint.set_path(&path);
-
-    Ok(Some((endpoint, token.to_string())))
-}
-
-fn normalize_minecraft_uuid(value: &str) -> Option<String> {
-    let compact: String = value.chars().filter(|character| *character != '-').collect();
-    if compact.len() != 32 || !compact.chars().all(|character| character.is_ascii_hexdigit()) {
-        return None;
-    }
-
-    Some(format!(
-        "{}-{}-{}-{}-{}",
-        &compact[0..8],
-        &compact[8..12],
-        &compact[12..16],
-        &compact[16..20],
-        &compact[20..32]
-    ))
-}
-
-fn sanitize_launcher_event_metadata(metadata: Map<String, Value>) -> Result<Map<String, Value>, String> {
-    const MAX_METADATA_FIELDS: usize = 16;
-    const MAX_METADATA_VALUE_LEN: usize = 160;
-
-    if metadata.len() > MAX_METADATA_FIELDS {
-        return Err("런처 이벤트 metadata 항목이 너무 많습니다.".to_string());
-    }
-
-    let mut sanitized = Map::new();
-    for (key, value) in metadata {
-        let trimmed_key = key.trim();
-        if trimmed_key.is_empty() || trimmed_key.len() > 48 {
-            return Err("런처 이벤트 metadata key가 올바르지 않습니다.".to_string());
-        }
-
-        let text_value = match value {
-            Value::Null => String::new(),
-            Value::Bool(value) => value.to_string(),
-            Value::Number(value) => value.to_string(),
-            Value::String(value) => value,
-            other => serde_json::to_string(&other).unwrap_or_default(),
-        };
-        let normalized_value: String = text_value.chars().take(MAX_METADATA_VALUE_LEN).collect();
-        sanitized.insert(trimmed_key.to_string(), Value::String(normalized_value));
-    }
-
-    Ok(sanitized)
-}
-
-#[tauri::command]
-fn open_external(url: String) -> Result<Value, CommandError> {
+pub(crate) fn open_external(url: String) -> Result<Value, CommandError> {
     validate_external_url(&url).map_err(command_error)?;
     tauri_plugin_opener::open_url(url, None::<&str>).map_err(command_error)?;
     Ok(json!({ "ok": true }))
 }
 
-fn validate_external_url(value: &str) -> Result<(), String> {
-    let parsed_url = Url::parse(value)
-        .map_err(|_| "허용되지 않은 외부 URL입니다.".to_string())?;
+pub(crate) fn validate_external_url(value: &str) -> Result<(), String> {
+    let parsed_url = Url::parse(value).map_err(|_| "허용되지 않은 외부 URL입니다.".to_string())?;
 
     if parsed_url.scheme() != "https" {
         return Err("외부 링크는 HTTPS만 열 수 있습니다.".to_string());
@@ -600,7 +467,7 @@ fn validate_external_url(value: &str) -> Result<(), String> {
     Err("허용되지 않은 외부 도메인입니다.".to_string())
 }
 
-fn is_configured_support_url(parsed_url: &Url, app_config: &Value) -> bool {
+pub(crate) fn is_configured_support_url(parsed_url: &Url, app_config: &Value) -> bool {
     let Some(support_url) = app_config
         .get("supportUrl")
         .and_then(Value::as_str)
@@ -626,7 +493,7 @@ fn is_configured_support_url(parsed_url: &Url, app_config: &Value) -> bool {
     path_is_at_or_below(parsed_url.path(), configured_url.path())
 }
 
-fn is_configured_server_host(parsed_url: &Url, server_manifest: &Value) -> bool {
+pub(crate) fn is_configured_server_host(parsed_url: &Url, server_manifest: &Value) -> bool {
     let Some(server_host) = server_manifest
         .get("address")
         .and_then(Value::as_str)
@@ -641,7 +508,7 @@ fn is_configured_server_host(parsed_url: &Url, server_manifest: &Value) -> bool 
     url_host == server_host
 }
 
-fn path_is_at_or_below(path: &str, allowed_path: &str) -> bool {
+pub(crate) fn path_is_at_or_below(path: &str, allowed_path: &str) -> bool {
     let normalized_allowed_path = if allowed_path.is_empty() {
         "/"
     } else {
@@ -655,7 +522,7 @@ fn path_is_at_or_below(path: &str, allowed_path: &str) -> bool {
             .is_some_and(|remainder| remainder.starts_with('/'))
 }
 
-fn normalize_server_host(value: &str) -> Option<String> {
+pub(crate) fn normalize_server_host(value: &str) -> Option<String> {
     let trimmed = value.trim();
 
     if trimmed.is_empty() {
@@ -673,12 +540,12 @@ fn normalize_server_host(value: &str) -> Option<String> {
 }
 
 #[tauri::command]
-fn get_window_state(app: tauri::AppHandle) -> WindowState {
+pub(crate) fn get_window_state(app: tauri::AppHandle) -> WindowState {
     window_state(&app)
 }
 
 #[tauri::command]
-fn minimize_window(app: tauri::AppHandle) -> WindowState {
+pub(crate) fn minimize_window(app: tauri::AppHandle) -> WindowState {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.minimize();
     }
@@ -688,7 +555,7 @@ fn minimize_window(app: tauri::AppHandle) -> WindowState {
 }
 
 #[tauri::command]
-fn toggle_maximize_window(app: tauri::AppHandle) -> WindowState {
+pub(crate) fn toggle_maximize_window(app: tauri::AppHandle) -> WindowState {
     if let Some(window) = app.get_webview_window("main") {
         let is_maximized = window.is_maximized().unwrap_or(false);
         let _ = if is_maximized {
@@ -703,10 +570,32 @@ fn toggle_maximize_window(app: tauri::AppHandle) -> WindowState {
 }
 
 #[tauri::command]
-fn close_window(app: tauri::AppHandle) -> Result<Value, CommandError> {
+pub(crate) fn close_window(app: tauri::AppHandle) -> Result<Value, CommandError> {
     if let Some(window) = app.get_webview_window("main") {
         window.close().map_err(command_error)?;
     }
 
     Ok(json!({ "ok": true }))
+}
+
+#[cfg(test)]
+mod settings_validation_tests {
+    use super::*;
+
+    #[test]
+    fn argument_settings_require_arrays_and_preserve_spaces() {
+        let value = json!(["-Dconfig=C:\\Program Files\\Star Prison\\config.json"]);
+        let sanitized = validate_setting_args("extraJvmArgs", value.clone()).unwrap();
+        assert_eq!(sanitized, value);
+        assert!(validate_setting_args("extraJvmArgs", json!("legacy string")).is_err());
+    }
+
+    #[test]
+    fn risky_arguments_are_classified_only_by_the_backend() {
+        let patch = Map::from_iter([(
+            "extraJvmArgs".to_string(),
+            json!(["-javaagent=C:\\agent.jar"]),
+        )]);
+        assert_eq!(unsafe_settings_warnings(&patch).len(), 1);
+    }
 }

@@ -16,9 +16,5 @@
                 "body": "추후 공지사항이 안내될 예정입니다."
             }
         ]
-    },
-    "launcherCompanion": {
-        "enabled": false,
-        "apiBaseUrl": ""
     }
 }

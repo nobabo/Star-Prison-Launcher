@@ -1,9 +1,12 @@
-const EMBEDDED_APP_CONFIG: &str = include_str!("../../config/app.config.json");
-const EMBEDDED_CLIENT_CONFIG: &str = include_str!("../../config/client.config.json");
-const EMBEDDED_DISTRIBUTION_CONFIG: &str = include_str!("../../config/distribution.json");
-const EMBEDDED_SERVER_MANIFEST: &str = include_str!("../../config/server.manifest.json");
+use crate::*;
 
-fn storage_root_path() -> PathBuf {
+pub(crate) const EMBEDDED_APP_CONFIG: &str = include_str!("../../config/app.config.json");
+pub(crate) const EMBEDDED_CLIENT_CONFIG: &str = include_str!("../../config/client.config.json");
+pub(crate) const EMBEDDED_DISTRIBUTION_CONFIG: &str =
+    include_str!("../../config/distribution.json");
+pub(crate) const EMBEDDED_SERVER_MANIFEST: &str = include_str!("../../config/server.manifest.json");
+
+pub(crate) fn storage_root_path() -> PathBuf {
     if let Ok(app_data_path) = std::env::var("APPDATA") {
         return PathBuf::from(app_data_path).join(STORAGE_ROOT_DIR_NAME);
     }
@@ -13,7 +16,7 @@ fn storage_root_path() -> PathBuf {
         .join(STORAGE_ROOT_DIR_NAME)
 }
 
-fn local_webview_data_directory() -> Result<PathBuf, String> {
+pub(crate) fn local_webview_data_directory() -> Result<PathBuf, String> {
     let local_data_root = std::env::var("LOCALAPPDATA")
         .ok()
         .filter(|value| !value.trim().is_empty())
@@ -36,24 +39,29 @@ fn local_webview_data_directory() -> Result<PathBuf, String> {
         })?;
     }
 
-    fs::create_dir_all(&current_path)
-        .map_err(|error| io_error("WebView Local AppData 폴더를 만들지 못했습니다", &current_path, error))?;
+    fs::create_dir_all(&current_path).map_err(|error| {
+        io_error(
+            "WebView Local AppData 폴더를 만들지 못했습니다",
+            &current_path,
+            error,
+        )
+    })?;
     Ok(current_path)
 }
 
-fn user_config_path() -> PathBuf {
+pub(crate) fn user_config_path() -> PathBuf {
     storage_root_path().join("user-config.json")
 }
 
-fn default_data_directory() -> PathBuf {
+pub(crate) fn default_data_directory() -> PathBuf {
     storage_root_path().join("data")
 }
 
-fn game_lock_path() -> PathBuf {
+pub(crate) fn game_lock_path() -> PathBuf {
     storage_root_path().join("game.lock")
 }
 
-fn stale_game_lock_age_ms(lock_path: &Path) -> Option<i64> {
+pub(crate) fn stale_game_lock_age_ms(lock_path: &Path) -> Option<i64> {
     let content = fs::read_to_string(lock_path).ok()?;
     let created_at = serde_json::from_str::<Value>(&content)
         .ok()
@@ -68,7 +76,7 @@ fn stale_game_lock_age_ms(lock_path: &Path) -> Option<i64> {
     }
 }
 
-fn game_lock_process_ids(lock_path: &Path) -> Option<(Option<u32>, Option<u32>)> {
+pub(crate) fn game_lock_process_ids(lock_path: &Path) -> Option<(Option<u32>, Option<u32>)> {
     let content = fs::read_to_string(lock_path).ok()?;
     let state = serde_json::from_str::<Value>(&content).ok()?;
     let launcher_process_id = state
@@ -83,7 +91,7 @@ fn game_lock_process_ids(lock_path: &Path) -> Option<(Option<u32>, Option<u32>)>
 }
 
 #[cfg(windows)]
-fn process_id_is_running(process_id: u32) -> Option<bool> {
+pub(crate) fn process_id_is_running(process_id: u32) -> Option<bool> {
     let script = format!(
         "if ($null -ne (Get-Process -Id {process_id} -ErrorAction SilentlyContinue)) {{ '1' }}"
     );
@@ -104,7 +112,7 @@ fn process_id_is_running(process_id: u32) -> Option<bool> {
 }
 
 #[cfg(not(windows))]
-fn process_id_is_running(process_id: u32) -> Option<bool> {
+pub(crate) fn process_id_is_running(process_id: u32) -> Option<bool> {
     Command::new("kill")
         .args(["-0", &process_id.to_string()])
         .status()
@@ -113,7 +121,7 @@ fn process_id_is_running(process_id: u32) -> Option<bool> {
 }
 
 #[cfg(windows)]
-fn minecraft_process_is_running() -> Option<bool> {
+pub(crate) fn minecraft_process_is_running() -> Option<bool> {
     let script = r#"
 $process = Get-CimInstance Win32_Process |
   Where-Object {
@@ -139,7 +147,7 @@ if ($null -ne $process) { '1' }
         .map(|output| String::from_utf8_lossy(&output.stdout).trim() == "1")
 }
 
-fn existing_game_lock_is_active(lock_path: &Path) -> bool {
+pub(crate) fn existing_game_lock_is_active(lock_path: &Path) -> bool {
     if let Some((launcher_process_id, minecraft_process_id)) = game_lock_process_ids(lock_path) {
         for process_id in [minecraft_process_id, launcher_process_id]
             .into_iter()
@@ -161,7 +169,10 @@ fn existing_game_lock_is_active(lock_path: &Path) -> bool {
     }
 }
 
-fn write_game_lock(file: &mut File, minecraft_process_id: Option<u32>) -> Result<(), String> {
+pub(crate) fn write_game_lock(
+    file: &mut File,
+    minecraft_process_id: Option<u32>,
+) -> Result<(), String> {
     let state = json!({
         "createdAt": now_ms(),
         "launcherProcessId": std::process::id(),
@@ -178,7 +189,7 @@ fn write_game_lock(file: &mut File, minecraft_process_id: Option<u32>) -> Result
         .map_err(|error| format!("게임 실행 잠금 파일을 동기화하지 못했습니다: {error}"))
 }
 
-fn update_game_lock_process_id(process_id: u32) -> Result<(), String> {
+pub(crate) fn update_game_lock_process_id(process_id: u32) -> Result<(), String> {
     let lock_path = game_lock_path();
     let mut file = OpenOptions::new()
         .write(true)
@@ -188,11 +199,11 @@ fn update_game_lock_process_id(process_id: u32) -> Result<(), String> {
 }
 
 #[cfg(not(windows))]
-fn minecraft_process_is_running() -> Option<bool> {
+pub(crate) fn minecraft_process_is_running() -> Option<bool> {
     Some(false)
 }
 
-fn try_acquire_game_lock() -> Result<bool, String> {
+pub(crate) fn try_acquire_game_lock() -> Result<bool, String> {
     if GAME_RUNNING
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_err()
@@ -249,12 +260,12 @@ fn try_acquire_game_lock() -> Result<bool, String> {
     Ok(false)
 }
 
-fn release_game_lock() {
+pub(crate) fn release_game_lock() {
     GAME_RUNNING.store(false, Ordering::SeqCst);
     let _ = fs::remove_file(game_lock_path());
 }
 
-fn embedded_config_for(relative_path: &str) -> Option<&'static str> {
+pub(crate) fn embedded_config_for(relative_path: &str) -> Option<&'static str> {
     match relative_path {
         "config/app.config.json" => Some(EMBEDDED_APP_CONFIG),
         "config/client.config.json" => Some(EMBEDDED_CLIENT_CONFIG),
@@ -264,7 +275,7 @@ fn embedded_config_for(relative_path: &str) -> Option<&'static str> {
     }
 }
 
-fn seed_embedded_project_file_if_missing(relative_path: &str) -> Result<(), String> {
+pub(crate) fn seed_embedded_project_file_if_missing(relative_path: &str) -> Result<(), String> {
     let content = embedded_config_for(relative_path)
         .ok_or_else(|| format!("Missing embedded project file: {relative_path}"))?;
     let path = storage_root_path().join(relative_path);
@@ -278,10 +289,11 @@ fn seed_embedded_project_file_if_missing(relative_path: &str) -> Result<(), Stri
             .map_err(|error| io_error("초기 설정 폴더를 만들지 못했습니다", parent, error))?;
     }
 
-    fs::write(&path, content).map_err(|error| io_error("초기 설정 파일을 쓰지 못했습니다", &path, error))
+    fs::write(&path, content)
+        .map_err(|error| io_error("초기 설정 파일을 쓰지 못했습니다", &path, error))
 }
 
-fn seed_default_config_files_for_first_run() -> Result<(), String> {
+pub(crate) fn seed_default_config_files_for_first_run() -> Result<(), String> {
     for relative_path in [
         "config/app.config.json",
         "config/client.config.json",
@@ -294,14 +306,14 @@ fn seed_default_config_files_for_first_run() -> Result<(), String> {
     Ok(())
 }
 
-fn read_embedded_json_file(relative_path: &str) -> Result<Value, String> {
+pub(crate) fn read_embedded_json_file(relative_path: &str) -> Result<Value, String> {
     let content = embedded_config_for(relative_path)
         .ok_or_else(|| format!("Missing embedded project file: {relative_path}"))?;
     serde_json::from_str(content)
         .map_err(|error| format!("내장 JSON 파일을 파싱하지 못했습니다 ({relative_path}): {error}"))
 }
 
-fn read_seeded_or_embedded_json_file(relative_path: &str) -> Result<Value, String> {
+pub(crate) fn read_seeded_or_embedded_json_file(relative_path: &str) -> Result<Value, String> {
     let path = storage_root_path().join(relative_path);
 
     if path.exists() {
@@ -311,7 +323,7 @@ fn read_seeded_or_embedded_json_file(relative_path: &str) -> Result<Value, Strin
     read_embedded_json_file(relative_path)
 }
 
-const TRUSTED_BROWSER_HOSTS: &[&str] = &[
+pub(crate) const TRUSTED_BROWSER_HOSTS: &[&str] = &[
     "login.microsoftonline.com",
     "microsoft.com",
     "minecraft.net",
@@ -319,7 +331,7 @@ const TRUSTED_BROWSER_HOSTS: &[&str] = &[
     "github.com",
 ];
 
-const TRUSTED_DOWNLOAD_HOSTS: &[&str] = &[
+pub(crate) const TRUSTED_DOWNLOAD_HOSTS: &[&str] = &[
     "piston-data.mojang.com",
     "piston-meta.mojang.com",
     "launcher.mojang.com",
@@ -337,11 +349,11 @@ const TRUSTED_DOWNLOAD_HOSTS: &[&str] = &[
     "adoptium.net",
 ];
 
-fn host_matches(host: &str, domain: &str) -> bool {
+pub(crate) fn host_matches(host: &str, domain: &str) -> bool {
     host == domain || host.ends_with(&format!(".{domain}"))
 }
 
-fn url_host_matches_any(url: &Url, domains: &[&str]) -> bool {
+pub(crate) fn url_host_matches_any(url: &Url, domains: &[&str]) -> bool {
     let Some(host) = url.host_str().map(str::to_ascii_lowercase) else {
         return false;
     };
@@ -349,15 +361,15 @@ fn url_host_matches_any(url: &Url, domains: &[&str]) -> bool {
     domains.iter().any(|domain| host_matches(&host, domain))
 }
 
-fn is_trusted_browser_host(url: &Url) -> bool {
+pub(crate) fn is_trusted_browser_host(url: &Url) -> bool {
     url_host_matches_any(url, TRUSTED_BROWSER_HOSTS)
 }
 
-fn is_trusted_download_host(url: &Url) -> bool {
+pub(crate) fn is_trusted_download_host(url: &Url) -> bool {
     url_host_matches_any(url, TRUSTED_DOWNLOAD_HOSTS)
 }
 
-fn validate_download_url(value: &str) -> Result<Url, String> {
+pub(crate) fn validate_download_url(value: &str) -> Result<Url, String> {
     let parsed_url =
         Url::parse(value).map_err(|_| format!("다운로드 URL이 올바르지 않습니다: {value}"))?;
 
@@ -372,13 +384,13 @@ fn validate_download_url(value: &str) -> Result<Url, String> {
     Ok(parsed_url)
 }
 
-fn distribution_manifest_cache_path() -> PathBuf {
+pub(crate) fn distribution_manifest_cache_path() -> PathBuf {
     storage_root_path()
         .join("config")
         .join("distribution.remote.json")
 }
 
-fn validate_distribution_manifest(manifest: &Value) -> Result<(), String> {
+pub(crate) fn validate_distribution_manifest(manifest: &Value) -> Result<(), String> {
     if manifest.get("schemaVersion").and_then(Value::as_u64) != Some(1) {
         return Err("배포 manifest의 schemaVersion은 1이어야 합니다.".to_string());
     }
@@ -392,21 +404,23 @@ fn validate_distribution_manifest(manifest: &Value) -> Result<(), String> {
 
     for field in ["runtime", "clientBundle"] {
         if !stable_channel.get(field).is_some_and(Value::is_object) {
-            return Err(format!("배포 manifest stable 채널의 {field} 정보가 없습니다."));
+            return Err(format!(
+                "배포 manifest stable 채널의 {field} 정보가 없습니다."
+            ));
         }
     }
 
     Ok(())
 }
 
-fn read_cached_distribution_manifest() -> Result<Value, String> {
+pub(crate) fn read_cached_distribution_manifest() -> Result<Value, String> {
     let path = distribution_manifest_cache_path();
     let manifest = read_json_file(&path)?;
     validate_distribution_manifest(&manifest)?;
     Ok(manifest)
 }
 
-fn cache_remote_distribution_manifest(manifest: &Value) -> Result<(), String> {
+pub(crate) fn cache_remote_distribution_manifest(manifest: &Value) -> Result<(), String> {
     let path = distribution_manifest_cache_path();
     let parent = path
         .parent()
@@ -420,7 +434,7 @@ fn cache_remote_distribution_manifest(manifest: &Value) -> Result<(), String> {
     Ok(())
 }
 
-fn embedded_distribution_manifest_url() -> Result<String, String> {
+pub(crate) fn embedded_distribution_manifest_url() -> Result<String, String> {
     let embedded_app_config = read_embedded_json_file("config/app.config.json")?;
     embedded_app_config
         .get("distributionManifest")
@@ -433,7 +447,7 @@ fn embedded_distribution_manifest_url() -> Result<String, String> {
         .ok_or_else(|| "내장 app config에 distribution manifest URL이 없습니다.".to_string())
 }
 
-fn read_distribution_manifest() -> Result<Value, String> {
+pub(crate) fn read_distribution_manifest() -> Result<Value, String> {
     let remote_url = embedded_distribution_manifest_url().ok();
 
     if let Some(remote_url) = remote_url.as_deref() {
@@ -469,14 +483,18 @@ fn read_distribution_manifest() -> Result<Value, String> {
     Ok(manifest)
 }
 
-fn read_json_file(path: &Path) -> Result<Value, String> {
+pub(crate) fn read_json_file(path: &Path) -> Result<Value, String> {
     let content = fs::read_to_string(path)
         .map_err(|error| io_error("JSON 파일을 읽지 못했습니다", path, error))?;
-    serde_json::from_str(&content)
-        .map_err(|error| format!("JSON 파일을 파싱하지 못했습니다: {} ({error})", display_path(path)))
+    serde_json::from_str(&content).map_err(|error| {
+        format!(
+            "JSON 파일을 파싱하지 못했습니다: {} ({error})",
+            display_path(path)
+        )
+    })
 }
 
-fn path_with_extra_extension(path: &Path, extension: &str) -> PathBuf {
+pub(crate) fn path_with_extra_extension(path: &Path, extension: &str) -> PathBuf {
     let file_name = path
         .file_name()
         .and_then(|value| value.to_str())
@@ -485,7 +503,7 @@ fn path_with_extra_extension(path: &Path, extension: &str) -> PathBuf {
     path.with_file_name(format!("{file_name}.{extension}"))
 }
 
-fn remove_file_if_exists(path: &Path) -> Result<(), String> {
+pub(crate) fn remove_file_if_exists(path: &Path) -> Result<(), String> {
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(()),
@@ -493,7 +511,7 @@ fn remove_file_if_exists(path: &Path) -> Result<(), String> {
     }
 }
 
-fn sync_parent_directory_best_effort(path: &Path) {
+pub(crate) fn sync_parent_directory_best_effort(path: &Path) {
     if let Some(parent) = path.parent() {
         if let Ok(directory) = File::open(parent) {
             let _ = directory.sync_all();
@@ -501,7 +519,7 @@ fn sync_parent_directory_best_effort(path: &Path) {
     }
 }
 
-fn recover_interrupted_user_config_write(path: &Path) -> Result<(), String> {
+pub(crate) fn recover_interrupted_user_config_write(path: &Path) -> Result<(), String> {
     let temp_path = path_with_extra_extension(path, "tmp");
     let backup_path = path_with_extra_extension(path, "bak");
 
@@ -543,34 +561,56 @@ fn recover_interrupted_user_config_write(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn load_app_config() -> Result<Value, String> {
+pub(crate) fn load_app_config() -> Result<Value, String> {
     read_seeded_or_embedded_json_file("config/app.config.json")
 }
 
-fn load_client_config() -> Result<Value, String> {
+pub(crate) fn load_client_config() -> Result<Value, String> {
     read_seeded_or_embedded_json_file("config/client.config.json")
 }
 
-fn load_server_manifest() -> Result<Value, String> {
+pub(crate) fn load_server_manifest() -> Result<Value, String> {
     read_seeded_or_embedded_json_file("config/server.manifest.json")
 }
 
-fn default_user_config() -> Value {
+pub(crate) fn default_user_config() -> Value {
     json!({
         "settings": {
             "dataDirectory": default_data_directory().to_string_lossy(),
             "allowPrerelease": false,
             "maxRamMb": 8192,
             "gameResolution": "default",
-            "extraJvmArgs": "",
-            "extraGameArgs": ""
+            "extraJvmArgs": [],
+            "extraGameArgs": []
         },
         "authSession": null,
         "lastDiagnostics": []
     })
 }
 
-fn merge_defaults(defaults: &Value, current: &Value) -> Value {
+pub(crate) fn migrate_argument_array_setting(settings: &mut Map<String, Value>, key: &str) -> bool {
+    let Some(value) = settings.get(key).cloned() else {
+        return false;
+    };
+    let migrated = match value {
+        Value::String(value) => Value::Array(
+            value
+                .split_whitespace()
+                .filter(|argument| !argument.is_empty())
+                .map(|argument| Value::String(argument.to_string()))
+                .collect(),
+        ),
+        Value::Array(values) => Value::Array(values),
+        _ => Value::Array(Vec::new()),
+    };
+    if settings.get(key) == Some(&migrated) {
+        return false;
+    }
+    settings.insert(key.to_string(), migrated);
+    true
+}
+
+pub(crate) fn merge_defaults(defaults: &Value, current: &Value) -> Value {
     match (defaults, current) {
         (Value::Object(default_map), Value::Object(current_map)) => {
             let mut merged = default_map.clone();
@@ -590,7 +630,7 @@ fn merge_defaults(defaults: &Value, current: &Value) -> Value {
     }
 }
 
-fn load_or_create_user_config() -> Result<Value, String> {
+pub(crate) fn load_or_create_user_config() -> Result<Value, String> {
     let path = user_config_path();
     let defaults = default_user_config();
 
@@ -651,15 +691,17 @@ fn load_or_create_user_config() -> Result<Value, String> {
         }
     };
     let mut merged = merge_defaults(&defaults, &current);
+    let mut needs_save = merged != current;
 
     if unprotect_auth_session_from_storage(&mut merged).is_err() {
         if let Some(config) = merged.as_object_mut() {
             config.insert("authSession".to_string(), Value::Null);
+            needs_save = true;
         }
     }
 
     if let Some(config) = merged.as_object_mut() {
-        config.remove("lastLaunchPlan");
+        needs_save |= config.remove("lastLaunchPlan").is_some();
     }
 
     if let Some(settings) = merged.get_mut("settings").and_then(Value::as_object_mut) {
@@ -673,17 +715,22 @@ fn load_or_create_user_config() -> Result<Value, String> {
                 "dataDirectory".to_string(),
                 Value::String(default_data_directory().to_string_lossy().into_owned()),
             );
+            needs_save = true;
         }
 
-        settings.remove("discordWebhookUrl");
-        settings.remove("discordNoticesEnabled");
+        needs_save |= settings.remove("discordWebhookUrl").is_some();
+        needs_save |= settings.remove("discordNoticesEnabled").is_some();
+        needs_save |= migrate_argument_array_setting(settings, "extraJvmArgs");
+        needs_save |= migrate_argument_array_setting(settings, "extraGameArgs");
     }
 
-    save_user_config(&merged)?;
+    if needs_save {
+        save_user_config(&merged)?;
+    }
     Ok(merged)
 }
 
-fn write_user_config_file_atomically(path: &Path, content: &str) -> Result<(), String> {
+pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> Result<(), String> {
     let temp_path = path_with_extra_extension(path, "tmp");
     let backup_path = path_with_extra_extension(path, "bak");
 
@@ -693,13 +740,23 @@ fn write_user_config_file_atomically(path: &Path, content: &str) -> Result<(), S
         .write(true)
         .create_new(true)
         .open(&temp_path)
-        .map_err(|error| io_error("사용자 설정 임시 파일을 만들지 못했습니다", &temp_path, error))?;
+        .map_err(|error| {
+            io_error(
+                "사용자 설정 임시 파일을 만들지 못했습니다",
+                &temp_path,
+                error,
+            )
+        })?;
     temp_file
         .write_all(content.as_bytes())
         .map_err(|error| io_error("사용자 설정 임시 파일을 쓰지 못했습니다", &temp_path, error))?;
-    temp_file
-        .sync_all()
-        .map_err(|error| io_error("사용자 설정 임시 파일을 동기화하지 못했습니다", &temp_path, error))?;
+    temp_file.sync_all().map_err(|error| {
+        io_error(
+            "사용자 설정 임시 파일을 동기화하지 못했습니다",
+            &temp_path,
+            error,
+        )
+    })?;
     drop(temp_file);
 
     #[cfg(windows)]
@@ -756,7 +813,10 @@ fn write_user_config_file_atomically(path: &Path, content: &str) -> Result<(), S
     Ok(())
 }
 
-fn save_user_config(config: &Value) -> Result<(), String> {
+pub(crate) fn save_user_config(config: &Value) -> Result<(), String> {
+    let _guard = USER_CONFIG_WRITE_LOCK
+        .lock()
+        .map_err(|_| "사용자 설정 저장 잠금이 손상되었습니다.".to_string())?;
     let path = user_config_path();
 
     if let Some(parent) = path.parent() {
@@ -765,13 +825,53 @@ fn save_user_config(config: &Value) -> Result<(), String> {
     }
 
     let protected_config = protect_auth_session_for_storage(config)?;
-    let content = serde_json::to_string_pretty(&protected_config).map_err(|error| error.to_string())?;
+    let content =
+        serde_json::to_string_pretty(&protected_config).map_err(|error| error.to_string())?;
     write_user_config_file_atomically(&path, &format!("{content}\n"))
 }
 
-fn now_ms() -> i64 {
+pub(crate) fn save_user_config_if_changed(
+    previous: &Value,
+    current: &Value,
+) -> Result<bool, String> {
+    if previous == current {
+        return Ok(false);
+    }
+    save_user_config(current)?;
+    Ok(true)
+}
+
+pub(crate) fn lock_user_config_mutation() -> Result<std::sync::MutexGuard<'static, ()>, String> {
+    USER_CONFIG_MUTATION_LOCK
+        .lock()
+        .map_err(|_| "사용자 설정 변경 잠금이 손상되었습니다.".to_string())
+}
+
+pub(crate) fn now_ms() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map(|duration| duration.as_millis() as i64)
         .unwrap_or(0)
+}
+
+#[cfg(test)]
+mod user_config_migration_tests {
+    use super::*;
+
+    #[test]
+    fn migrates_legacy_argument_strings_to_arrays() {
+        let mut settings = Map::from_iter([(
+            "extraJvmArgs".to_string(),
+            Value::String("-Xmx2G -Ddemo=true".to_string()),
+        )]);
+        assert!(migrate_argument_array_setting(
+            &mut settings,
+            "extraJvmArgs"
+        ));
+        assert_eq!(settings["extraJvmArgs"], json!(["-Xmx2G", "-Ddemo=true"]));
+        assert!(!migrate_argument_array_setting(
+            &mut settings,
+            "extraJvmArgs"
+        ));
+    }
 }

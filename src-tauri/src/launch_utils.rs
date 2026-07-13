@@ -1,4 +1,6 @@
-const GAME_RESOLUTION_OPTIONS: &[&str] = &[
+use crate::*;
+
+pub(crate) const GAME_RESOLUTION_OPTIONS: &[&str] = &[
     "default",
     "1280x720",
     "1366x768",
@@ -7,11 +9,11 @@ const GAME_RESOLUTION_OPTIONS: &[&str] = &[
     "2560x1440",
 ];
 
-fn value_string(value: Option<&Value>) -> Option<String> {
+pub(crate) fn value_string(value: Option<&Value>) -> Option<String> {
     value.and_then(Value::as_str).map(str::to_string)
 }
 
-fn value_string_vec(value: Option<&Value>) -> Vec<String> {
+pub(crate) fn value_string_vec(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
         .map(|items| {
@@ -24,14 +26,21 @@ fn value_string_vec(value: Option<&Value>) -> Vec<String> {
         .unwrap_or_default()
 }
 
-fn split_user_args(value: Option<&Value>) -> Vec<String> {
+pub(crate) fn split_user_args(value: Option<&Value>) -> Vec<String> {
     value
-        .and_then(Value::as_str)
-        .map(|args| args.split_whitespace().map(str::to_string).collect())
+        .and_then(Value::as_array)
+        .map(|args| {
+            args.iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|argument| !argument.is_empty())
+                .map(str::to_string)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
-fn emit_launch_state(app: &tauri::AppHandle, label: &str, progress: f64) {
+pub(crate) fn emit_launch_state(app: &tauri::AppHandle, label: &str, progress: f64) {
     let _ = app.emit(
         "launcher:launch-state-changed",
         json!({
@@ -41,61 +50,120 @@ fn emit_launch_state(app: &tauri::AppHandle, label: &str, progress: f64) {
     );
 }
 
-fn display_path(path: &Path) -> String {
+pub(crate) fn display_path(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
 
-fn io_error(action: &str, path: &Path, error: impl std::fmt::Display) -> String {
+pub(crate) fn io_error(action: &str, path: &Path, error: impl std::fmt::Display) -> String {
     format!("{action}: {} ({error})", display_path(path))
 }
 
-fn contextual_error(context: &str, error: impl std::fmt::Display) -> String {
+pub(crate) fn contextual_error(context: &str, error: impl std::fmt::Display) -> String {
     format!("{context}: {error}")
 }
 
-fn sha256_file(path: &Path) -> Result<String, String> {
-    let mut file = File::open(path).map_err(|error| io_error("SHA-256 계산을 위해 파일을 열지 못했습니다", path, error))?;
+pub(crate) fn sha256_file(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|error| io_error("SHA-256 계산을 위해 파일을 열지 못했습니다", path, error))?;
     let mut hasher = Sha256::new();
-    io::copy(&mut file, &mut hasher).map_err(|error| io_error("SHA-256 계산 중 파일을 읽지 못했습니다", path, error))?;
+    io::copy(&mut file, &mut hasher)
+        .map_err(|error| io_error("SHA-256 계산 중 파일을 읽지 못했습니다", path, error))?;
     Ok(format!("{:x}", hasher.finalize()))
 }
 
-fn sha1_file(path: &Path) -> Result<String, String> {
-    let mut file = File::open(path).map_err(|error| io_error("SHA-1 계산을 위해 파일을 열지 못했습니다", path, error))?;
+pub(crate) fn sha1_file(path: &Path) -> Result<String, String> {
+    let mut file = File::open(path)
+        .map_err(|error| io_error("SHA-1 계산을 위해 파일을 열지 못했습니다", path, error))?;
     let mut hasher = Sha1::new();
-    io::copy(&mut file, &mut hasher).map_err(|error| io_error("SHA-1 계산 중 파일을 읽지 못했습니다", path, error))?;
+    io::copy(&mut file, &mut hasher)
+        .map_err(|error| io_error("SHA-1 계산 중 파일을 읽지 못했습니다", path, error))?;
     Ok(format!("{:x}", hasher.finalize()))
 }
 
 #[derive(Clone, Copy)]
-struct ZipExtractionLimits {
-    max_file_count: usize,
-    max_entry_count: usize,
-    max_uncompressed_size: u64,
+pub(crate) struct ZipExtractionLimits {
+    pub(crate) max_file_count: usize,
+    pub(crate) max_entry_count: usize,
+    pub(crate) max_path_depth: usize,
+    pub(crate) max_uncompressed_size: u64,
 }
 
-const RUNTIME_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
+pub(crate) const RUNTIME_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
     max_file_count: 20_000,
     max_entry_count: 24_000,
+    max_path_depth: 32,
     max_uncompressed_size: 1024 * 1024 * 1024,
 };
-const CLIENT_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
+pub(crate) const CLIENT_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
     max_file_count: 50_000,
     max_entry_count: 60_000,
+    max_path_depth: 32,
     max_uncompressed_size: 2 * 1024 * 1024 * 1024,
 };
-const NATIVE_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
+pub(crate) const NATIVE_ZIP_EXTRACTION_LIMITS: ZipExtractionLimits = ZipExtractionLimits {
     max_file_count: 2_000,
     max_entry_count: 2_500,
+    max_path_depth: 16,
     max_uncompressed_size: 512 * 1024 * 1024,
 };
-const MAX_UNSIZED_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+pub(crate) const MAX_UNSIZED_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
-fn validate_zip_archive_limits(zip_path: &Path, limits: ZipExtractionLimits) -> Result<usize, String> {
+pub(crate) fn account_zip_entry(
+    path: &Path,
+    name: &str,
+    is_directory: bool,
+    uncompressed_size: u64,
+    limits: ZipExtractionLimits,
+    file_count: &mut usize,
+    total_uncompressed_size: &mut u64,
+) -> Result<(), String> {
+    let path_depth = path.components().count();
+    if path_depth > limits.max_path_depth {
+        return Err(format!(
+            "압축 파일 경로 중첩이 제한을 초과했습니다: {path_depth}/{} ({})",
+            limits.max_path_depth,
+            path.display()
+        ));
+    }
+    if is_directory {
+        return (uncompressed_size == 0).then_some(()).ok_or_else(|| {
+            format!("압축 파일 디렉터리 엔트리의 크기 정보가 비정상입니다: {name}")
+        });
+    }
+
+    *file_count = file_count
+        .checked_add(1)
+        .ok_or_else(|| "압축 파일 개수 계산이 초과되었습니다.".to_string())?;
+    if *file_count > limits.max_file_count {
+        return Err(format!(
+            "압축 파일 개수가 제한을 초과했습니다: {file_count}/{}",
+            limits.max_file_count
+        ));
+    }
+    *total_uncompressed_size = total_uncompressed_size
+        .checked_add(uncompressed_size)
+        .ok_or_else(|| "압축 해제 크기 계산이 overflow되었습니다.".to_string())?;
+    if *total_uncompressed_size > limits.max_uncompressed_size {
+        return Err(format!(
+            "압축 해제 크기가 제한을 초과했습니다: {}/{} bytes",
+            total_uncompressed_size, limits.max_uncompressed_size
+        ));
+    }
+    Ok(())
+}
+
+pub(crate) fn validate_zip_archive_limits(
+    zip_path: &Path,
+    limits: ZipExtractionLimits,
+) -> Result<usize, String> {
     let file = File::open(zip_path)
         .map_err(|error| io_error("압축 파일을 열지 못했습니다", zip_path, error))?;
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|error| contextual_error(&format!("압축 파일을 읽지 못했습니다 ({})", display_path(zip_path)), error))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|error| {
+        contextual_error(
+            &format!("압축 파일을 읽지 못했습니다 ({})", display_path(zip_path)),
+            error,
+        )
+    })?;
     let entry_count = archive.len();
 
     if entry_count > limits.max_entry_count {
@@ -111,12 +179,17 @@ fn validate_zip_archive_limits(zip_path: &Path, limits: ZipExtractionLimits) -> 
 
     for index in 0..entry_count {
         let file = archive.by_index(index).map_err(|error| {
-            contextual_error(&format!("압축 파일 엔트리를 읽지 못했습니다 (index: {index})"), error)
+            contextual_error(
+                &format!("압축 파일 엔트리를 읽지 못했습니다 (index: {index})"),
+                error,
+            )
         })?;
         let enclosed_path = file.enclosed_name().ok_or_else(|| {
-            format!("압축 파일에 허용되지 않은 경로가 포함되어 있습니다: {}", file.name())
+            format!(
+                "압축 파일에 허용되지 않은 경로가 포함되어 있습니다: {}",
+                file.name()
+            )
         })?;
-
         if !seen_paths.insert(enclosed_path.to_path_buf()) {
             return Err(format!(
                 "압축 파일에 중복 경로가 포함되어 있습니다: {}",
@@ -124,44 +197,21 @@ fn validate_zip_archive_limits(zip_path: &Path, limits: ZipExtractionLimits) -> 
             ));
         }
 
-        if file.is_dir() {
-            if file.size() != 0 {
-                return Err(format!(
-                    "압축 파일 디렉터리 엔트리의 크기 정보가 비정상입니다: {}",
-                    file.name()
-                ));
-            }
-
-            continue;
-        }
-
-        file_count = file_count
-            .checked_add(1)
-            .ok_or_else(|| "압축 파일 개수 계산이 초과되었습니다.".to_string())?;
-
-        if file_count > limits.max_file_count {
-            return Err(format!(
-                "압축 파일 개수가 제한을 초과했습니다: {file_count}/{}",
-                limits.max_file_count
-            ));
-        }
-
-        total_uncompressed_size = total_uncompressed_size
-            .checked_add(file.size())
-            .ok_or_else(|| "압축 해제 크기 계산이 overflow되었습니다.".to_string())?;
-
-        if total_uncompressed_size > limits.max_uncompressed_size {
-            return Err(format!(
-                "압축 해제 크기가 제한을 초과했습니다: {}/{} bytes",
-                total_uncompressed_size, limits.max_uncompressed_size
-            ));
-        }
+        account_zip_entry(
+            &enclosed_path,
+            file.name(),
+            file.is_dir(),
+            file.size(),
+            limits,
+            &mut file_count,
+            &mut total_uncompressed_size,
+        )?;
     }
 
     Ok(file_count)
 }
 
-fn extract_zip_file_with_limits_and_progress<F>(
+pub(crate) fn extract_zip_file_with_limits_and_progress<F>(
     zip_path: &Path,
     destination: &Path,
     limits: ZipExtractionLimits,
@@ -172,26 +222,52 @@ fn extract_zip_file_with_limits_and_progress<F>(
 where
     F: FnMut(usize, usize, &Path),
 {
-    let total_file_count = validate_zip_archive_limits(zip_path, limits)?;
-    fs::create_dir_all(destination)
-        .map_err(|error| io_error("압축 해제 대상 폴더를 만들지 못했습니다", destination, error))?;
+    let preflight_file_count = preserve_existing_files
+        .then(|| validate_zip_archive_limits(zip_path, limits))
+        .transpose()?;
+    fs::create_dir_all(destination).map_err(|error| {
+        io_error(
+            "압축 해제 대상 폴더를 만들지 못했습니다",
+            destination,
+            error,
+        )
+    })?;
 
     let file = File::open(zip_path)
         .map_err(|error| io_error("압축 파일을 열지 못했습니다", zip_path, error))?;
-    let mut archive = zip::ZipArchive::new(file)
-        .map_err(|error| contextual_error(&format!("압축 파일을 읽지 못했습니다 ({})", display_path(zip_path)), error))?;
+    let mut archive = zip::ZipArchive::new(file).map_err(|error| {
+        contextual_error(
+            &format!("압축 파일을 읽지 못했습니다 ({})", display_path(zip_path)),
+            error,
+        )
+    })?;
     let mut seen_paths = HashSet::new();
     let mut seen_output_paths = HashSet::new();
+    let entry_count = archive.len();
+    if entry_count > limits.max_entry_count {
+        return Err(format!(
+            "압축 파일 엔트리 수가 제한을 초과했습니다: {entry_count}/{}",
+            limits.max_entry_count
+        ));
+    }
+    let total_file_count = preflight_file_count.unwrap_or(entry_count);
+    let mut file_count = 0usize;
+    let mut total_uncompressed_size = 0u64;
     let mut extracted_file_count = 0usize;
 
     for index in 0..archive.len() {
         let mut file = archive.by_index(index).map_err(|error| {
-            contextual_error(&format!("압축 파일 엔트리를 읽지 못했습니다 (index: {index})"), error)
+            contextual_error(
+                &format!("압축 파일 엔트리를 읽지 못했습니다 (index: {index})"),
+                error,
+            )
         })?;
         let enclosed_path = file.enclosed_name().ok_or_else(|| {
-            format!("압축 파일에 허용되지 않은 경로가 포함되어 있습니다: {}", file.name())
+            format!(
+                "압축 파일에 허용되지 않은 경로가 포함되어 있습니다: {}",
+                file.name()
+            )
         })?;
-
         if !seen_paths.insert(enclosed_path.to_path_buf()) {
             return Err(format!(
                 "압축 파일에 중복 경로가 포함되어 있습니다: {}",
@@ -199,7 +275,18 @@ where
             ));
         }
 
-        let Some(relative_output_path) = zip_entry_output_path(&enclosed_path, root_prefixes) else {
+        account_zip_entry(
+            &enclosed_path,
+            file.name(),
+            file.is_dir(),
+            file.size(),
+            limits,
+            &mut file_count,
+            &mut total_uncompressed_size,
+        )?;
+
+        let Some(relative_output_path) = zip_entry_output_path(&enclosed_path, root_prefixes)
+        else {
             continue;
         };
 
@@ -214,8 +301,9 @@ where
 
         if file.is_dir() {
             if !preserve_existing_files || !output_path.exists() {
-                fs::create_dir_all(&output_path)
-                    .map_err(|error| io_error("압축 해제 폴더를 만들지 못했습니다", &output_path, error))?;
+                fs::create_dir_all(&output_path).map_err(|error| {
+                    io_error("압축 해제 폴더를 만들지 못했습니다", &output_path, error)
+                })?;
             }
             continue;
         }
@@ -228,8 +316,13 @@ where
         on_file(extracted_file_count, total_file_count, &output_path);
 
         if let Some(parent) = output_path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|error| io_error("압축 해제 대상 상위 폴더를 만들지 못했습니다", parent, error))?;
+            fs::create_dir_all(parent).map_err(|error| {
+                io_error(
+                    "압축 해제 대상 상위 폴더를 만들지 못했습니다",
+                    parent,
+                    error,
+                )
+            })?;
         }
 
         let expected_size = file.size();
@@ -250,7 +343,7 @@ where
     Ok(())
 }
 
-fn extract_zip_file_with_limits(
+pub(crate) fn extract_zip_file_with_limits(
     zip_path: &Path,
     destination: &Path,
     limits: ZipExtractionLimits,
@@ -265,7 +358,10 @@ fn extract_zip_file_with_limits(
     )
 }
 
-fn zip_entry_output_path(enclosed_path: &Path, root_prefixes: &[&str]) -> Option<PathBuf> {
+pub(crate) fn zip_entry_output_path(
+    enclosed_path: &Path,
+    root_prefixes: &[&str],
+) -> Option<PathBuf> {
     for root_prefix in root_prefixes {
         let Ok(stripped_path) = enclosed_path.strip_prefix(root_prefix) else {
             continue;
@@ -281,19 +377,20 @@ fn zip_entry_output_path(enclosed_path: &Path, root_prefixes: &[&str]) -> Option
     Some(enclosed_path.to_path_buf())
 }
 
-fn remove_path_if_exists(path: &Path) -> Result<(), String> {
+pub(crate) fn remove_path_if_exists(path: &Path) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
 
     if path.is_dir() {
-        fs::remove_dir_all(path).map_err(|error| io_error("폴더를 삭제하지 못했습니다", path, error))
+        fs::remove_dir_all(path)
+            .map_err(|error| io_error("폴더를 삭제하지 못했습니다", path, error))
     } else {
         fs::remove_file(path).map_err(|error| io_error("파일을 삭제하지 못했습니다", path, error))
     }
 }
 
-fn remove_empty_dir_best_effort(path: &Path) {
+pub(crate) fn remove_empty_dir_best_effort(path: &Path) {
     match fs::remove_dir(path) {
         Ok(()) => {}
         Err(error)
@@ -305,7 +402,7 @@ fn remove_empty_dir_best_effort(path: &Path) {
     }
 }
 
-fn cleanup_empty_launcher_cache_dirs(data_directory: &Path) {
+pub(crate) fn cleanup_empty_launcher_cache_dirs(data_directory: &Path) {
     for relative_path in [
         Path::new("downloads").join("release-archives"),
         Path::new("downloads").join("modpack-files"),
@@ -320,7 +417,7 @@ fn cleanup_empty_launcher_cache_dirs(data_directory: &Path) {
     }
 }
 
-fn remove_path_if_exists_with_permission_repair(path: &Path) -> Result<(), String> {
+pub(crate) fn remove_path_if_exists_with_permission_repair(path: &Path) -> Result<(), String> {
     match remove_path_if_exists(path) {
         Ok(()) => Ok(()),
         Err(first_error) => {
@@ -335,7 +432,7 @@ fn remove_path_if_exists_with_permission_repair(path: &Path) -> Result<(), Strin
     }
 }
 
-fn extract_zip_archive(
+pub(crate) fn extract_zip_archive(
     zip_path: &Path,
     destination: &Path,
     limits: ZipExtractionLimits,
@@ -344,7 +441,7 @@ fn extract_zip_archive(
     extract_zip_file_with_limits(zip_path, destination, limits)
 }
 
-fn progress_file_name(path: &Path) -> String {
+pub(crate) fn progress_file_name(path: &Path) -> String {
     path.file_name()
         .and_then(|value| value.to_str())
         .filter(|value| !value.trim().is_empty())
@@ -352,7 +449,7 @@ fn progress_file_name(path: &Path) -> String {
         .to_string()
 }
 
-fn extract_zip_archive_with_limits_and_progress(
+pub(crate) fn extract_zip_archive_with_limits_and_progress(
     app: &tauri::AppHandle,
     zip_path: &Path,
     destination: &Path,
@@ -384,7 +481,7 @@ fn extract_zip_archive_with_limits_and_progress(
     )
 }
 
-fn extract_zip_archive_preserving_existing_files_with_limits_and_progress(
+pub(crate) fn extract_zip_archive_preserving_existing_files_with_limits_and_progress(
     app: &tauri::AppHandle,
     zip_path: &Path,
     destination: &Path,
@@ -417,7 +514,7 @@ fn extract_zip_archive_preserving_existing_files_with_limits_and_progress(
 
 #[cfg(windows)]
 #[allow(clippy::permissions_set_readonly_false)]
-fn clear_readonly_recursively(path: &Path) -> Result<(), String> {
+pub(crate) fn clear_readonly_recursively(path: &Path) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
@@ -429,7 +526,9 @@ fn clear_readonly_recursively(path: &Path) -> Result<(), String> {
         for entry in fs::read_dir(path)
             .map_err(|error| io_error("권한 보정 대상 폴더를 읽지 못했습니다", path, error))?
         {
-            let entry = entry.map_err(|error| contextual_error("권한 보정 대상 항목을 읽지 못했습니다", error))?;
+            let entry = entry.map_err(|error| {
+                contextual_error("권한 보정 대상 항목을 읽지 못했습니다", error)
+            })?;
             clear_readonly_recursively(&entry.path())?;
         }
     }
@@ -445,12 +544,12 @@ fn clear_readonly_recursively(path: &Path) -> Result<(), String> {
 }
 
 #[cfg(not(windows))]
-fn clear_readonly_recursively(_path: &Path) -> Result<(), String> {
+pub(crate) fn clear_readonly_recursively(_path: &Path) -> Result<(), String> {
     Ok(())
 }
 
 #[cfg(windows)]
-fn current_windows_accounts() -> Vec<String> {
+pub(crate) fn current_windows_accounts() -> Vec<String> {
     let username = std::env::var("USERNAME")
         .ok()
         .filter(|value| !value.trim().is_empty());
@@ -474,7 +573,7 @@ fn current_windows_accounts() -> Vec<String> {
 }
 
 #[cfg(windows)]
-fn grant_current_user_full_control(path: &Path, recursive: bool) -> Result<(), String> {
+pub(crate) fn grant_current_user_full_control(path: &Path, recursive: bool) -> Result<(), String> {
     if !path.exists() {
         return Ok(());
     }
@@ -495,7 +594,9 @@ fn grant_current_user_full_control(path: &Path, recursive: bool) -> Result<(), S
             .arg("/Q")
             .args(if recursive { &["/T"][..] } else { &[][..] })
             .output()
-            .map_err(|error| contextual_error("icacls 권한 보정 명령을 실행하지 못했습니다", error))?;
+            .map_err(|error| {
+                contextual_error("icacls 권한 보정 명령을 실행하지 못했습니다", error)
+            })?;
 
         if output.status.success() {
             return Ok(());
@@ -517,21 +618,28 @@ fn grant_current_user_full_control(path: &Path, recursive: bool) -> Result<(), S
 }
 
 #[cfg(not(windows))]
-fn grant_current_user_full_control(_path: &Path, _recursive: bool) -> Result<(), String> {
+pub(crate) fn grant_current_user_full_control(
+    _path: &Path,
+    _recursive: bool,
+) -> Result<(), String> {
     Ok(())
 }
 
-fn prepare_path_for_replacement(path: &Path) -> Result<(), String> {
+pub(crate) fn prepare_path_for_replacement(path: &Path) -> Result<(), String> {
     clear_readonly_recursively(path)?;
     grant_current_user_full_control(path, false)
 }
 
-fn repair_path_permissions_deep(path: &Path) -> Result<(), String> {
+pub(crate) fn repair_path_permissions_deep(path: &Path) -> Result<(), String> {
     clear_readonly_recursively(path)?;
     grant_current_user_full_control(path, true)
 }
 
-fn rename_with_permission_repair(from: &Path, to: &Path, action: &str) -> Result<(), String> {
+pub(crate) fn rename_with_permission_repair(
+    from: &Path,
+    to: &Path,
+    action: &str,
+) -> Result<(), String> {
     match fs::rename(from, to) {
         Ok(()) => Ok(()),
         Err(first_error) => {
@@ -577,7 +685,10 @@ fn rename_with_permission_repair(from: &Path, to: &Path, action: &str) -> Result
     }
 }
 
-fn replace_directory_atomic(current_path: &Path, staged_path: &Path) -> Result<(), String> {
+pub(crate) fn replace_directory_atomic(
+    current_path: &Path,
+    staged_path: &Path,
+) -> Result<(), String> {
     if !staged_path.exists() {
         return Err(format!(
             "새 설치 폴더가 없습니다: {}",
@@ -586,8 +697,13 @@ fn replace_directory_atomic(current_path: &Path, staged_path: &Path) -> Result<(
     }
 
     if let Some(parent) = current_path.parent() {
-        fs::create_dir_all(parent)
-            .map_err(|error| io_error("현재 설치 위치의 상위 폴더를 만들지 못했습니다", parent, error))?;
+        fs::create_dir_all(parent).map_err(|error| {
+            io_error(
+                "현재 설치 위치의 상위 폴더를 만들지 못했습니다",
+                parent,
+                error,
+            )
+        })?;
         prepare_path_for_replacement(parent)?;
     }
 
@@ -640,20 +756,20 @@ fn replace_directory_atomic(current_path: &Path, staged_path: &Path) -> Result<(
 }
 
 #[derive(Clone, Copy)]
-enum ChecksumAlgorithm {
+pub(crate) enum ChecksumAlgorithm {
     Sha1,
     Sha256,
 }
 
 impl ChecksumAlgorithm {
-    fn label(self) -> &'static str {
+    pub(crate) fn label(self) -> &'static str {
         match self {
             Self::Sha1 => "SHA-1",
             Self::Sha256 => "SHA-256",
         }
     }
 
-    fn hash_file(self, path: &Path) -> Result<String, String> {
+    pub(crate) fn hash_file(self, path: &Path) -> Result<String, String> {
         match self {
             Self::Sha1 => sha1_file(path),
             Self::Sha256 => sha256_file(path),
@@ -661,14 +777,18 @@ impl ChecksumAlgorithm {
     }
 }
 
-fn checksum_matches(path: &Path, expected_checksum: &str, algorithm: ChecksumAlgorithm) -> bool {
+pub(crate) fn checksum_matches(
+    path: &Path,
+    expected_checksum: &str,
+    algorithm: ChecksumAlgorithm,
+) -> bool {
     algorithm
         .hash_file(path)
         .map(|actual_checksum| actual_checksum.eq_ignore_ascii_case(expected_checksum))
         .unwrap_or(false)
 }
 
-fn ensure_parent_dir(path: &Path) -> Result<(), String> {
+pub(crate) fn ensure_parent_dir(path: &Path) -> Result<(), String> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)
             .map_err(|error| io_error("상위 폴더를 만들지 못했습니다", parent, error))?;
@@ -677,7 +797,7 @@ fn ensure_parent_dir(path: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn partial_download_path(target_file_path: &Path) -> PathBuf {
+pub(crate) fn partial_download_path(target_file_path: &Path) -> PathBuf {
     let file_name = target_file_path
         .file_name()
         .and_then(|value| value.to_str())
@@ -685,7 +805,7 @@ fn partial_download_path(target_file_path: &Path) -> PathBuf {
     target_file_path.with_file_name(format!("{file_name}.partial"))
 }
 
-fn download_file_once(
+pub(crate) fn download_file_once(
     resource_url: &str,
     partial_file_path: &Path,
     maximum_size: u64,
@@ -711,10 +831,7 @@ fn download_file_once(
     let send_request = |range_start: Option<u64>| {
         let mut request = client.get(requested_url.clone());
         if let Some(range_start) = range_start {
-            request = request.header(
-                reqwest::header::RANGE,
-                format!("bytes={range_start}-"),
-            );
+            request = request.header(reqwest::header::RANGE, format!("bytes={range_start}-"));
         }
         request
             .send()
@@ -722,9 +839,7 @@ fn download_file_once(
     };
 
     let mut response = send_request((existing_size > 0).then_some(existing_size))?;
-    if existing_size > 0
-        && response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE
-    {
+    if existing_size > 0 && response.status() == reqwest::StatusCode::RANGE_NOT_SATISFIABLE {
         remove_path_if_exists(partial_file_path)?;
         existing_size = 0;
         response = send_request(None)?;
@@ -777,9 +892,13 @@ fn download_file_once(
     } else {
         options.truncate(true);
     }
-    let mut partial_file = options
-        .open(partial_file_path)
-        .map_err(|error| io_error("다운로드 임시 파일을 열지 못했습니다", partial_file_path, error))?;
+    let mut partial_file = options.open(partial_file_path).map_err(|error| {
+        io_error(
+            "다운로드 임시 파일을 열지 못했습니다",
+            partial_file_path,
+            error,
+        )
+    })?;
     let remaining_size = maximum_size.saturating_sub(existing_size);
     let written_size = io::copy(
         &mut response.take(remaining_size.saturating_add(1)),
@@ -803,14 +922,18 @@ fn download_file_once(
         ));
     }
 
-    partial_file
-        .sync_all()
-        .map_err(|error| io_error("다운로드 임시 파일을 동기화하지 못했습니다", partial_file_path, error))?;
+    partial_file.sync_all().map_err(|error| {
+        io_error(
+            "다운로드 임시 파일을 동기화하지 못했습니다",
+            partial_file_path,
+            error,
+        )
+    })?;
 
     Ok(())
 }
 
-fn copy_or_download_file(
+pub(crate) fn copy_or_download_file(
     resource_url: &str,
     target_file_path: &Path,
     expected_size: Option<u64>,
@@ -819,9 +942,7 @@ fn copy_or_download_file(
     let partial_file_path = partial_download_path(target_file_path);
     validate_download_url(resource_url)?;
 
-    if let (Some(expected_size), Ok(metadata)) =
-        (expected_size, fs::metadata(&partial_file_path))
-    {
+    if let (Some(expected_size), Ok(metadata)) = (expected_size, fs::metadata(&partial_file_path)) {
         if metadata.is_file() && metadata.len() == expected_size {
             if target_file_path.exists() {
                 remove_path_if_exists(target_file_path)?;
@@ -906,7 +1027,7 @@ fn copy_or_download_file(
     Ok(())
 }
 
-fn ensure_cached_artifact(
+pub(crate) fn ensure_cached_artifact(
     resource_url: &str,
     target_path: &Path,
     sha256: Option<&str>,
@@ -923,7 +1044,7 @@ fn ensure_cached_artifact(
     )
 }
 
-fn ensure_cached_artifact_with_checksum(
+pub(crate) fn ensure_cached_artifact_with_checksum(
     resource_url: &str,
     target_path: &Path,
     checksum: Option<&str>,
@@ -955,8 +1076,13 @@ fn ensure_cached_artifact_with_checksum(
             display_path(target_path)
         )
     })?;
-    let metadata = fs::metadata(target_path)
-        .map_err(|error| io_error("다운로드된 캐시 파일 정보를 읽지 못했습니다", target_path, error))?;
+    let metadata = fs::metadata(target_path).map_err(|error| {
+        io_error(
+            "다운로드된 캐시 파일 정보를 읽지 못했습니다",
+            target_path,
+            error,
+        )
+    })?;
 
     if size.is_some_and(|expected_size| metadata.len() != expected_size) {
         remove_path_if_exists(target_path)?;
@@ -984,7 +1110,66 @@ mod launch_download_resume_tests {
     use super::*;
 
     #[test]
-    fn partial_download_path_preserves_original_file_name() {
+    pub(crate) fn zip_budget_checks_depth_count_and_uncompressed_size() {
+        let limits = ZipExtractionLimits {
+            max_file_count: 1,
+            max_entry_count: 2,
+            max_path_depth: 2,
+            max_uncompressed_size: 4,
+        };
+        let mut file_count = 0;
+        let mut total_size = 0;
+
+        account_zip_entry(
+            Path::new("mods/a.jar"),
+            "mods/a.jar",
+            false,
+            4,
+            limits,
+            &mut file_count,
+            &mut total_size,
+        )
+        .expect("first bounded file should be accepted");
+        assert!(account_zip_entry(
+            Path::new("mods/deep/b.jar"),
+            "mods/deep/b.jar",
+            false,
+            1,
+            limits,
+            &mut file_count,
+            &mut total_size,
+        )
+        .is_err());
+        assert_eq!(file_count, 1);
+        assert_eq!(total_size, 4);
+
+        assert!(account_zip_entry(
+            Path::new("b.jar"),
+            "b.jar",
+            false,
+            1,
+            limits,
+            &mut file_count,
+            &mut total_size,
+        )
+        .is_err());
+
+        let mut fresh_file_count = 0;
+        let mut fresh_total_size = 0;
+        assert!(account_zip_entry(
+            Path::new("large.jar"),
+            "large.jar",
+            false,
+            5,
+            limits,
+            &mut fresh_file_count,
+            &mut fresh_total_size,
+        )
+        .is_err());
+    }
+
+    #[test]
+    pub(crate) fn partial_download_path_preserves_original_file_name() {
         let target = Path::new("downloads").join("mods.zip");
         assert_eq!(
             partial_download_path(&target),
@@ -993,7 +1178,7 @@ mod launch_download_resume_tests {
     }
 
     #[test]
-    fn completed_partial_file_is_promoted_without_redownload() {
+    pub(crate) fn completed_partial_file_is_promoted_without_redownload() {
         let directory = std::env::temp_dir().join(format!(
             "star-prison-download-test-{}-{}",
             std::process::id(),
