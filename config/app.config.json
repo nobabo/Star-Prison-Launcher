@@ -8,7 +8,7 @@
     "allowPrerelease": false,
     "discordNotices": {
         "enabled": true,
-        "endpointUrl": "https://star-prison.yjh802637.workers.dev/notices",
+        "endpointUrl": "https://star-prison-discord-notices.yjh802637.workers.dev/notices",
         "fallbackCards": [
             {
                 "eyebrow": "알림",
