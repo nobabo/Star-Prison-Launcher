@@ -13,6 +13,7 @@ pub(crate) static LAUNCH_PENDING: AtomicBool = AtomicBool::new(false);
 pub(crate) static GAME_RUNNING: AtomicBool = AtomicBool::new(false);
 pub(crate) static GAME_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 pub(crate) static GAME_TERMINATION_REQUESTED: AtomicBool = AtomicBool::new(false);
+pub(crate) static APP_CONFIG_MIGRATION_LOCK: Mutex<()> = Mutex::new(());
 pub(crate) static USER_CONFIG_WRITE_LOCK: Mutex<()> = Mutex::new(());
 pub(crate) static USER_CONFIG_MUTATION_LOCK: Mutex<()> = Mutex::new(());
 

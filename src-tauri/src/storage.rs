@@ -5,6 +5,7 @@ pub(crate) const EMBEDDED_CLIENT_CONFIG: &str = include_str!("../../config/clien
 pub(crate) const EMBEDDED_DISTRIBUTION_CONFIG: &str =
     include_str!("../../config/distribution.json");
 pub(crate) const EMBEDDED_SERVER_MANIFEST: &str = include_str!("../../config/server.manifest.json");
+const APP_CONFIG_VERSION_KEY: &str = "configVersion";
 
 pub(crate) fn storage_root_path() -> PathBuf {
     if let Ok(app_data_path) = std::env::var("APPDATA") {
@@ -561,8 +562,56 @@ pub(crate) fn recover_interrupted_user_config_write(path: &Path) -> Result<(), S
     Ok(())
 }
 
+fn app_config_version(config: &Value) -> u64 {
+    config
+        .get(APP_CONFIG_VERSION_KEY)
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+}
+
+fn migrate_seeded_app_config(embedded: &Value, seeded: &Value) -> Result<(Value, bool), String> {
+    let embedded_object = embedded
+        .as_object()
+        .ok_or_else(|| "내장 app config는 JSON object여야 합니다.".to_string())?;
+    let seeded_object = seeded
+        .as_object()
+        .ok_or_else(|| "로컬 app config는 JSON object여야 합니다.".to_string())?;
+    let embedded_version = app_config_version(embedded);
+    let seeded_version = app_config_version(seeded);
+
+    if embedded_version == 0 || seeded_version >= embedded_version {
+        return Ok((seeded.clone(), false));
+    }
+
+    let mut migrated = seeded_object.clone();
+
+    for (key, value) in embedded_object {
+        migrated.insert(key.clone(), value.clone());
+    }
+
+    Ok((Value::Object(migrated), true))
+}
+
 pub(crate) fn load_app_config() -> Result<Value, String> {
-    read_seeded_or_embedded_json_file("config/app.config.json")
+    let _guard = APP_CONFIG_MIGRATION_LOCK
+        .lock()
+        .map_err(|_| "앱 설정 마이그레이션 잠금이 손상되었습니다.".to_string())?;
+    let embedded = read_embedded_json_file("config/app.config.json")?;
+    let path = storage_root_path().join("config/app.config.json");
+
+    if !path.exists() {
+        return Ok(embedded);
+    }
+
+    let seeded = read_json_file(&path)?;
+    let (migrated, needs_save) = migrate_seeded_app_config(&embedded, &seeded)?;
+
+    if needs_save {
+        let content = serde_json::to_string_pretty(&migrated).map_err(|error| error.to_string())?;
+        write_config_file_atomically(&path, &format!("{content}\n"))?;
+    }
+
+    Ok(migrated)
 }
 
 pub(crate) fn load_client_config() -> Result<Value, String> {
@@ -730,7 +779,7 @@ pub(crate) fn load_or_create_user_config() -> Result<Value, String> {
     Ok(merged)
 }
 
-pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> Result<(), String> {
+pub(crate) fn write_config_file_atomically(path: &Path, content: &str) -> Result<(), String> {
     let temp_path = path_with_extra_extension(path, "tmp");
     let backup_path = path_with_extra_extension(path, "bak");
 
@@ -740,23 +789,13 @@ pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> R
         .write(true)
         .create_new(true)
         .open(&temp_path)
-        .map_err(|error| {
-            io_error(
-                "사용자 설정 임시 파일을 만들지 못했습니다",
-                &temp_path,
-                error,
-            )
-        })?;
+        .map_err(|error| io_error("설정 임시 파일을 만들지 못했습니다", &temp_path, error))?;
     temp_file
         .write_all(content.as_bytes())
-        .map_err(|error| io_error("사용자 설정 임시 파일을 쓰지 못했습니다", &temp_path, error))?;
-    temp_file.sync_all().map_err(|error| {
-        io_error(
-            "사용자 설정 임시 파일을 동기화하지 못했습니다",
-            &temp_path,
-            error,
-        )
-    })?;
+        .map_err(|error| io_error("설정 임시 파일을 쓰지 못했습니다", &temp_path, error))?;
+    temp_file
+        .sync_all()
+        .map_err(|error| io_error("설정 임시 파일을 동기화하지 못했습니다", &temp_path, error))?;
     drop(temp_file);
 
     #[cfg(windows)]
@@ -767,7 +806,7 @@ pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> R
             fs::rename(path, &backup_path).map_err(|error| {
                 contextual_error(
                     &format!(
-                        "기존 사용자 설정 파일을 백업하지 못했습니다 (from: {}, to: {})",
+                        "기존 설정 파일을 백업하지 못했습니다 (from: {}, to: {})",
                         display_path(path),
                         display_path(&backup_path)
                     ),
@@ -783,7 +822,7 @@ pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> R
 
             return Err(contextual_error(
                 &format!(
-                    "사용자 설정 임시 파일을 적용하지 못했습니다 (from: {}, to: {})",
+                    "설정 임시 파일을 적용하지 못했습니다 (from: {}, to: {})",
                     display_path(&temp_path),
                     display_path(path)
                 ),
@@ -799,7 +838,7 @@ pub(crate) fn write_user_config_file_atomically(path: &Path, content: &str) -> R
         fs::rename(&temp_path, path).map_err(|error| {
             contextual_error(
                 &format!(
-                    "사용자 설정 임시 파일을 적용하지 못했습니다 (from: {}, to: {})",
+                    "설정 임시 파일을 적용하지 못했습니다 (from: {}, to: {})",
                     display_path(&temp_path),
                     display_path(path)
                 ),
@@ -827,7 +866,7 @@ pub(crate) fn save_user_config(config: &Value) -> Result<(), String> {
     let protected_config = protect_auth_session_for_storage(config)?;
     let content =
         serde_json::to_string_pretty(&protected_config).map_err(|error| error.to_string())?;
-    write_user_config_file_atomically(&path, &format!("{content}\n"))
+    write_config_file_atomically(&path, &format!("{content}\n"))
 }
 
 pub(crate) fn save_user_config_if_changed(
@@ -873,5 +912,53 @@ mod user_config_migration_tests {
             &mut settings,
             "extraJvmArgs"
         ));
+    }
+
+    #[test]
+    fn migrates_seeded_app_config_by_version_and_preserves_local_only_keys() {
+        let embedded = json!({
+            "configVersion": 2,
+            "supportUrl": "https://example.com/new",
+            "discordNotices": {
+                "endpointUrl": "https://notices.example.com/notices"
+            }
+        });
+        let seeded = json!({
+            "supportUrl": "https://example.com/old",
+            "discordNotices": {
+                "endpointUrl": "https://old.example.com/notices"
+            },
+            "launcherCompanion": {
+                "bearerToken": "local-only"
+            }
+        });
+
+        let (migrated, changed) = migrate_seeded_app_config(&embedded, &seeded).unwrap();
+
+        assert!(changed);
+        assert_eq!(migrated["configVersion"], 2);
+        assert_eq!(migrated["supportUrl"], "https://example.com/new");
+        assert_eq!(
+            migrated["discordNotices"]["endpointUrl"],
+            "https://notices.example.com/notices"
+        );
+        assert_eq!(migrated["launcherCompanion"]["bearerToken"], "local-only");
+    }
+
+    #[test]
+    fn keeps_seeded_app_config_when_version_is_current() {
+        let embedded = json!({
+            "configVersion": 2,
+            "supportUrl": "https://example.com/new"
+        });
+        let seeded = json!({
+            "configVersion": 2,
+            "supportUrl": "https://example.com/local"
+        });
+
+        let (migrated, changed) = migrate_seeded_app_config(&embedded, &seeded).unwrap();
+
+        assert!(!changed);
+        assert_eq!(migrated, seeded);
     }
 }

@@ -69,13 +69,14 @@ Downloaded zip files and staged folders are cleaned up when installation succeed
 
 The launcher does not blindly overwrite user data on every run.
 
-- `app.config.json`, `client.config.json`, and `server.manifest.json` are seeded on first run and local files take priority afterward.
+- `config/app.config.json` is the single source of truth for app configuration. When its embedded `configVersion` is newer than the local version, repository-managed keys are merged into the local seed while local-only keys are preserved.
+- `client.config.json` and `server.manifest.json` are seeded on first run and local files take priority afterward.
 - `distribution.json` is refreshed on every launch from the fixed GitHub URL in `app.config.json`; network failures fall back to the last verified cache, then the embedded default.
 - `options.txt` is merged by key instead of being replaced wholesale.
 - User-editable archives such as `config.zip` and `shaderpacks.zip` preserve existing files where appropriate.
 - `mods.zip` is treated as the server-managed mod archive.
 
-For launcher default changes, start with `config/client.config.json`, `config/app.config.json`, and `config/server.manifest.json`. Update GitHub's `config/distribution.json` for mod, game-config, and shader distribution changes.
+When changing release-managed values in `config/app.config.json`, increment `configVersion` so existing installs migrate their seed exactly once. Local development syncs this file automatically before `pnpm dev`; run `pnpm config:sync:local` to force an immediate sync. For other launcher defaults, check `config/client.config.json` and `config/server.manifest.json`. Update GitHub's `config/distribution.json` for mod, game-config, and shader distribution changes.
 
 ## Security and Reliability
 
@@ -93,6 +94,7 @@ For launcher default changes, start with `config/client.config.json`, `config/ap
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
+pnpm config:sync:local
 pnpm dev
 pnpm lint
 pnpm format:check

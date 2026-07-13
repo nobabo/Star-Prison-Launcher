@@ -4,6 +4,7 @@ export function createInitialState(){
         bootstrap: null,
         backgroundImageUrl: null,
         noticeCards: null,
+        noticeError: null,
         noticeRequestId: 0,
         minecraftProcessId: null,
         pendingAction: null,

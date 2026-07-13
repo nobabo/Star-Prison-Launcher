@@ -69,13 +69,14 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 
 런처는 사용자 설정을 런타임마다 무조건 덮어쓰지 않습니다.
 
-- `app.config.json`, `client.config.json`, `server.manifest.json`은 첫 실행 시 기본값으로 seed되며, 이미 존재하면 로컬 파일을 우선 사용합니다.
+- `config/app.config.json`은 앱 설정의 단일 원본입니다. 내장 `configVersion`이 로컬 버전보다 높을 때만 저장소에 정의된 key를 로컬 seed에 병합하며, 저장소에 없는 로컬 전용 key는 보존합니다.
+- `client.config.json`, `server.manifest.json`은 첫 실행 시 기본값으로 seed되며, 이미 존재하면 로컬 파일을 우선 사용합니다.
 - `distribution.json`은 `app.config.json`에 고정된 GitHub URL에서 실행 시마다 갱신하며, 네트워크 오류 시 마지막으로 검증된 캐시와 내장 기본값을 순서대로 사용합니다.
 - `options.txt`는 파일 전체 교체가 아니라 필요한 key 단위 병합을 기준으로 합니다.
 - `config.zip`, `shaderpacks.zip`처럼 사용자가 직접 바꿀 수 있는 파일은 기존 파일을 보존하는 방향으로 설치됩니다.
 - `mods.zip`은 서버가 관리하는 모드 구성을 맞추기 위한 release archive로 취급합니다.
 
-런처 기본값을 바꿀 때는 `config/client.config.json`, `config/app.config.json`, `config/server.manifest.json`을 확인하세요. 모드·게임 설정·쉐이더 배포 정보는 GitHub의 `config/distribution.json`을 갱신합니다.
+`config/app.config.json`의 배포 관리 값을 바꿀 때는 `configVersion`도 증가시켜 기존 설치의 seed가 한 번만 마이그레이션되게 합니다. 로컬 개발에서는 `pnpm dev`가 실행 전에 자동으로 동기화하며, 즉시 강제 동기화하려면 `pnpm config:sync:local`을 사용합니다. 그 밖의 런처 기본값은 `config/client.config.json`, `config/server.manifest.json`을 확인하세요. 모드·게임 설정·쉐이더 배포 정보는 GitHub의 `config/distribution.json`을 갱신합니다.
 
 ## 보안과 신뢰성
 
@@ -93,6 +94,7 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 ```bash
 corepack enable
 pnpm install --frozen-lockfile
+pnpm config:sync:local
 pnpm dev
 pnpm lint
 pnpm format:check

@@ -1,12 +1,15 @@
 const DISCORD_API_BASE_URL = 'https://discord.com/api/v10'
 const MAX_NOTICE_LIMIT = 20
 
-function jsonResponse(payload, init = {}, env = {}){
-    const headers = new Headers(init.headers)
-    headers.set('content-type', 'application/json; charset=utf-8')
-    headers.set('access-control-allow-origin', env.ALLOWED_ORIGIN || '*')
+function applyCorsHeaders(headers){
+    headers.set('access-control-allow-origin', '*')
     headers.set('access-control-allow-methods', 'GET, OPTIONS')
     headers.set('access-control-allow-headers', 'content-type')
+}
+function jsonResponse(payload, init = {}, env = {}, request){
+    const headers = new Headers(init.headers)
+    headers.set('content-type', 'application/json; charset=utf-8')
+    applyCorsHeaders(headers)
 
     return new Response(JSON.stringify(payload), {
         ...init,
@@ -264,7 +267,7 @@ async function handleNotices(request, env, ctx){
                 ? `public, max-age=${positiveInteger(env.CACHE_TTL_SECONDS, 60)}`
                 : 'no-store'
         }
-    }, env)
+    }, env, request)
 
     if(result.ok && !skipCache){
         ctx.waitUntil(cache.put(cacheKey, response.clone()))
@@ -276,30 +279,25 @@ async function handleNotices(request, env, ctx){
 export default {
     async fetch(request, env, ctx){
         if(request.method === 'OPTIONS'){
-            return new Response(null, {
-                status: 204,
-                headers: {
-                    'access-control-allow-origin': env.ALLOWED_ORIGIN || '*',
-                    'access-control-allow-methods': 'GET, OPTIONS',
-                    'access-control-allow-headers': 'content-type'
-                }
-            })
+            const headers = new Headers()
+            applyCorsHeaders(headers)
+            return new Response(null, { status: 204, headers })
         }
 
         const url = new URL(request.url)
 
         if(request.method !== 'GET'){
-            return jsonResponse({ error: 'Method not allowed.' }, { status: 405 }, env)
+            return jsonResponse({ error: 'Method not allowed.' }, { status: 405 }, env, request)
         }
 
         if(url.pathname === '/' || url.pathname === '/health'){
-            return jsonResponse({ ok: true }, { status: 200 }, env)
+            return jsonResponse({ ok: true }, { status: 200 }, env, request)
         }
 
         if(url.pathname === '/notices'){
             return handleNotices(request, env, ctx)
         }
 
-        return jsonResponse({ error: 'Not found.' }, { status: 404 }, env)
+        return jsonResponse({ error: 'Not found.' }, { status: 404 }, env, request)
     }
 }
