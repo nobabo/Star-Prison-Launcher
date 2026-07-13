@@ -5,7 +5,7 @@
   "type": "module",
   "packageManager": "pnpm@11.6.0+sha512.9a36518224080c6fe5165afdcfe79bfa118c29be703f3f462b1e32efe1e98e47e8750b148e08286250aad4113cc7993ca413c4e2cd447752708c2ee5751bc95f",
   "scripts": {
-    "version:sync": "node sync-package-version.mjs",
+    "version:sync": "node .github/workflows/sync-package-version.mjs",
     "predev": "pnpm version:sync",
     "dev": "tauri dev",
     "dev:no-port": "cargo run --manifest-path src-tauri/Cargo.toml",
@@ -20,11 +20,11 @@
     "wiki:test": "pnpm --filter @star-prison/wiki-web test",
     "distribution:sync:release": "node .github/scripts/sync-modpack-manifest.mjs && node .github/scripts/sync-release-archives.mjs",
     "lint": "pnpm lint:js && pnpm lint:css",
-    "lint:js": "eslint .",
-    "lint:css": "stylelint \"src/**/*.css\"",
-    "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
-    "format": "prettier \"*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --write",
-    "format:check": "prettier \"*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --check",
+    "lint:js": "eslint --config lint/eslint.config.js .",
+    "lint:css": "stylelint --config lint/stylelint.config.js \"src/**/*.css\"",
+    "lint:css:fix": "stylelint --config lint/stylelint.config.js \"src/**/*.css\" --fix",
+    "format": "prettier --config lint/prettier.config.js --ignore-path lint/.prettierignore \"lint/*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --write",
+    "format:check": "prettier --config lint/prettier.config.js --ignore-path lint/.prettierignore \"lint/*.config.js\" \"package.json\" \"pnpm-workspace.yaml\" \".github/workflows/*.yml\" --check",
     "distribution:sync:modpack": "node .github/scripts/sync-modpack-manifest.mjs"
   },
   "devDependencies": {

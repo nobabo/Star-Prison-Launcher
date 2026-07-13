@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const ROOT_DIR = process.cwd();
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const PACKAGE_PATH = path.join(ROOT_DIR, "package.json");
 const CARGO_TOML_PATH = path.join(ROOT_DIR, "src-tauri", "Cargo.toml");
 const TAURI_CONFIG_PATH = path.join(ROOT_DIR, "src-tauri", "tauri.conf.json");

@@ -100,8 +100,8 @@ pnpm format:check
 
 Windows release:
 
-```bat
-release.bat
+```powershell
+.\release.ps1
 ```
 
 Release output:

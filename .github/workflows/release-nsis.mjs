@@ -3,7 +3,7 @@ import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const ROOT_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const TARGET_DIR = path.join(ROOT_DIR, "src-tauri", "target", "release");
 const NSIS_WORK_DIR = path.join(TARGET_DIR, "nsis", "x64");
 const BUNDLE_NSIS_DIR = path.join(TARGET_DIR, "bundle", "nsis");
@@ -212,7 +212,7 @@ function copyFinalInstaller() {
 }
 
 if (process.platform !== "win32") {
-  fail("release-nsis.mjs must be run on Windows. Use release.bat.");
+  fail("release-nsis.mjs must be run on Windows. Use release.ps1.");
 }
 
 readJson(TAURI_CONF);

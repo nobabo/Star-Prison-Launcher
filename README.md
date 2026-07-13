@@ -100,8 +100,8 @@ pnpm format:check
 
 Windows 릴리즈:
 
-```bat
-release.bat
+```powershell
+.\release.ps1
 ```
 
 릴리즈 결과물:
