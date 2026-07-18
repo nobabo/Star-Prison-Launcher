@@ -33,9 +33,12 @@ function settingsArguments(id, name, values){
 function settingsSelect(id, name, value, options){
     const selectedValue = options.some(option => option.value === value) ? value : options[0]?.value
     const select = el('select', {
+        className: 'custom-select__native',
         attrs: {
             id,
-            name
+            name,
+            tabindex: '-1',
+            'aria-hidden': 'true'
         }
     }, options.map(option => el('option', {
         text: option.label,
@@ -45,7 +48,88 @@ function settingsSelect(id, name, value, options){
     })))
 
     select.value = selectedValue ?? ''
-    return select
+
+    const selectedOption = options.find(option => option.value === select.value) ?? options[0]
+    const triggerLabel = el('span', {
+        className: 'custom-select__value',
+        text: selectedOption?.label ?? ''
+    })
+    const menu = el('div', {
+        className: 'custom-select__menu',
+        attrs: {
+            role: 'listbox',
+            hidden: ''
+        }
+    })
+    const trigger = el('button', {
+        className: 'custom-select__trigger',
+        attrs: {
+            type: 'button',
+            'aria-haspopup': 'listbox',
+            'aria-expanded': 'false',
+            'aria-controls': `${id}-options`
+        }
+    }, triggerLabel, el('span', {
+        className: 'custom-select__caret',
+        attrs: { 'aria-hidden': 'true' }
+    }))
+    menu.id = `${id}-options`
+
+    function closeMenu(){
+        menu.hidden = true
+        trigger.setAttribute('aria-expanded', 'false')
+    }
+
+    function openMenu(){
+        menu.hidden = false
+        trigger.setAttribute('aria-expanded', 'true')
+    }
+
+    trigger.addEventListener('click', () => {
+        if(menu.hidden){
+            openMenu()
+        } else {
+            closeMenu()
+        }
+    })
+
+    for(const option of options){
+        const optionButton = el('button', {
+            className: 'custom-select__option',
+            text: option.label,
+            attrs: {
+                type: 'button',
+                role: 'option',
+                'aria-selected': String(option.value === select.value)
+            },
+            dataset: { value: option.value }
+        })
+
+        optionButton.addEventListener('click', () => {
+            select.value = option.value
+            select.dispatchEvent(new Event('change', { bubbles: true }))
+            triggerLabel.textContent = option.label
+            menu.querySelectorAll('.custom-select__option').forEach(item => {
+                item.setAttribute('aria-selected', String(item === optionButton))
+            })
+            closeMenu()
+        })
+        menu.appendChild(optionButton)
+    }
+
+    const root = el('div', { className: 'custom-select' }, select, trigger, menu)
+    document.addEventListener('click', event => {
+        if(!root.contains(event.target)){
+            closeMenu()
+        }
+    })
+    document.addEventListener('keydown', event => {
+        if(event.key === 'Escape'){
+            closeMenu()
+        }
+    })
+
+    return root
 }
 
 function managedDirectoryButton(kind, text){

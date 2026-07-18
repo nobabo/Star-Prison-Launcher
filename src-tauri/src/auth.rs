@@ -376,6 +376,37 @@ pub(crate) fn auth_session_needs_refresh(session: &Map<String, Value>) -> bool {
         .is_none_or(|expires_at| expires_at <= now_ms() + AUTH_REFRESH_MARGIN_MS)
 }
 
+pub(crate) fn set_active_auth_session(user_config: &mut Value, session: Value) {
+    let Some(config) = user_config.as_object_mut() else {
+        return;
+    };
+    let profile_id = session
+        .get("profileId")
+        .and_then(Value::as_str)
+        .map(str::to_string);
+    let accounts = config
+        .entry("authAccounts".to_string())
+        .or_insert_with(|| Value::Array(Vec::new()));
+
+    if !accounts.is_array() {
+        *accounts = Value::Array(Vec::new());
+    }
+
+    if let Some(accounts) = accounts.as_array_mut() {
+        if let Some(index) = profile_id.as_deref().and_then(|profile_id| {
+            accounts.iter().position(|account| {
+                account.get("profileId").and_then(Value::as_str) == Some(profile_id)
+            })
+        }) {
+            accounts[index] = session.clone();
+        } else {
+            accounts.push(session.clone());
+        }
+    }
+
+    config.insert("authSession".to_string(), session);
+}
+
 pub(crate) fn refresh_auth_session_if_needed(
     user_config: &mut Value,
     app_config: &Value,
@@ -421,9 +452,7 @@ pub(crate) fn refresh_auth_session_if_needed(
         exchange_microsoft_tokens_for_minecraft(&client, &microsoft_access_token)?;
     let refreshed_session = auth_session_payload(next_refresh_token, minecraft_session, true);
 
-    if let Some(config) = user_config.as_object_mut() {
-        config.insert("authSession".to_string(), refreshed_session);
-    }
+    set_active_auth_session(user_config, refreshed_session);
 
     save_user_config_if_changed(&previous, user_config)
         .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
@@ -577,9 +606,7 @@ pub(crate) async fn run_sign_in(app: &tauri::AppHandle) -> Result<Value, AuthErr
         let previous = user_config.clone();
         let session = auth_session_payload(refresh_token, minecraft_session, false);
 
-        if let Some(config) = user_config.as_object_mut() {
-            config.insert("authSession".to_string(), session.clone());
-        }
+        set_active_auth_session(&mut user_config, session.clone());
 
         save_user_config_if_changed(&previous, &user_config)
             .map_err(|error| AuthError::new("AUTH_CONFIG_FAILED", error))?;
@@ -604,6 +631,7 @@ pub(crate) fn build_bootstrap_payload() -> Result<Value, String> {
     let server_manifest = load_server_manifest()?;
     let user_config = load_or_create_user_config()?;
     let auth_summary = auth_summary(&user_config);
+    let auth_accounts = auth_account_summaries(&user_config);
     let preflight = run_preflight(&auth_summary);
     let settings = user_config
         .get("settings")
@@ -618,7 +646,39 @@ pub(crate) fn build_bootstrap_payload() -> Result<Value, String> {
             "settings": settings
         },
         "authSummary": auth_summary,
+        "authAccounts": auth_accounts,
         "preflight": preflight,
         "fatalError": null
     }))
+}
+
+#[cfg(test)]
+mod auth_account_tests {
+    use super::*;
+
+    fn test_session(player_name: &str, profile_id: &str, access_token: &str) -> Value {
+        json!({
+            "source": "microsoft",
+            "refreshToken": "refresh-token",
+            "accessToken": access_token,
+            "playerName": player_name,
+            "profileId": profile_id,
+            "expiresAt": 1234
+        })
+    }
+
+    #[test]
+    fn active_session_upsert_replaces_matching_account_without_duplicates() {
+        let mut user_config = json!({
+            "authSession": null,
+            "authAccounts": [test_session("Alpha", "profile-a", "old-token")]
+        });
+        let refreshed = test_session("Alpha", "profile-a", "new-token");
+
+        set_active_auth_session(&mut user_config, refreshed.clone());
+
+        assert_eq!(user_config["authSession"], refreshed);
+        assert_eq!(user_config["authAccounts"].as_array().unwrap().len(), 1);
+        assert_eq!(user_config["authAccounts"][0]["accessToken"], "new-token");
+    }
 }

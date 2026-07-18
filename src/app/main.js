@@ -13,9 +13,16 @@ window.starPrisonLauncher = createLauncherBridge()
 const state = createInitialState()
 
 const PAGE_SCROLL_MULTIPLIER = 5
-const BACKGROUND_PARALLAX_RANGE = 2
-const FALLING_CHICK_REMOVE_BUFFER_MS = 400
+const BACKGROUND_PARALLAX_RANGE = 3
+const FALLING_EASTER_EGG_REMOVE_BUFFER_MS = 400
+const ACCOUNT_SWITCHER_EXIT_DURATION_MS = 280
+const FALLING_EASTER_EGG_ASSETS = [
+    { src: './assets/chick-face.svg', minSize: 48, maxSize: 64 },
+    { src: './assets/pig-face.svg', minSize: 62, maxSize: 82 }
+]
 let mountedViewName = null
+let accountSwitcherExitTimer = null
+let accountSwitcherClosing = false
 const launcherController = createLauncherController({
     state,
     render,
@@ -236,6 +243,151 @@ function preloadAccountSkin(){
     image.src = skinUrls.head
 }
 
+function buildAccountSkinImage(playerName, className = 'account-switcher-avatar-image'){
+    const skinUrls = buildMineSkinUrls(playerName)
+
+    if(skinUrls == null){
+        return el('span', { className: `${className} account-switcher-avatar-fallback`, text: '?' })
+    }
+
+    return el('img', {
+        className,
+        attrs: {
+            src: skinUrls.head,
+            alt: '',
+            'aria-hidden': 'true',
+            loading: 'eager',
+            decoding: 'async'
+        }
+    })
+}
+
+function clearAccountSwitcherExitTimer(){
+    if(accountSwitcherExitTimer != null){
+        window.clearTimeout(accountSwitcherExitTimer)
+        accountSwitcherExitTimer = null
+    }
+}
+
+function finishAccountSwitcherExit(dialog){
+    clearAccountSwitcherExitTimer()
+
+    if(dialog?.open){
+        dialog.close()
+    }
+
+    dialog?.classList.remove('is-visible', 'is-closing')
+    accountSwitcherClosing = false
+}
+
+function closeAccountSwitcher(){
+    const dialog = document.getElementById('account-switcher-dialog')
+
+    if(dialog == null || !dialog.open || accountSwitcherClosing){
+        return
+    }
+
+    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+        finishAccountSwitcherExit(dialog)
+        return
+    }
+
+    accountSwitcherClosing = true
+    dialog.classList.remove('is-visible')
+    dialog.classList.add('is-closing')
+    accountSwitcherExitTimer = window.setTimeout(() => {
+        if(dialog.classList.contains('is-closing')){
+            finishAccountSwitcherExit(dialog)
+        }
+    }, ACCOUNT_SWITCHER_EXIT_DURATION_MS + 80)
+}
+
+function renderAccountSwitcher(){
+    const trigger = document.getElementById('account-switcher-trigger')
+    const triggerAvatar = document.getElementById('account-switcher-trigger-avatar')
+    const list = document.getElementById('account-switcher-list')
+    const addButton = document.getElementById('account-switcher-add')
+    const auth = state.bootstrap?.authSummary
+    const signedIn = auth?.signedIn === true
+
+    if(trigger == null || triggerAvatar == null || list == null || addButton == null){
+        return
+    }
+
+    trigger.hidden = !signedIn
+
+    if(!signedIn){
+        closeAccountSwitcher()
+        list.replaceChildren()
+        return
+    }
+
+    trigger.setAttribute('aria-label', `${auth.playerName} 계정 선택`)
+    trigger.setAttribute('title', `${auth.playerName} · 계정 선택`)
+    triggerAvatar.replaceChildren(buildAccountSkinImage(auth.playerName))
+
+    const savedAccounts = Array.isArray(state.bootstrap.authAccounts)
+        ? state.bootstrap.authAccounts
+        : []
+    const accounts = savedAccounts.length > 0 ? savedAccounts : [auth]
+    const actionPending = state.pendingAction != null
+
+    list.replaceChildren(...accounts.map(account => {
+        const isActive = account.profileId === auth.profileId
+        const option = el('button', {
+            className: `account-switcher-option${isActive ? ' account-switcher-option--active' : ''}`,
+            attrs: {
+                type: 'button',
+                'aria-label': `${account.playerName} 계정 선택`,
+                title: `${account.playerName} 계정 선택`,
+                disabled: actionPending ? '' : null
+            },
+            dataset: {
+                accountProfileId: account.profileId
+            }
+        },
+            el('span', { className: 'account-switcher-option__avatar', attrs: { 'aria-hidden': 'true' } },
+                buildAccountSkinImage(account.playerName)
+            )
+        )
+
+        return el('article', {
+            className: 'account-switcher-item',
+            dataset: {
+                accountProfileId: account.profileId
+            }
+        },
+            option,
+            el('h3', {
+                className: `account-switcher-name${isActive ? ' account-switcher-name--active' : ''}`,
+                text: account.playerName
+            })
+        )
+    }))
+    addButton.disabled = actionPending
+}
+
+function openAccountSwitcher(){
+    const dialog = document.getElementById('account-switcher-dialog')
+
+    if(dialog == null || state.bootstrap?.authSummary?.signedIn !== true){
+        return
+    }
+
+    renderAccountSwitcher()
+    if(!dialog.open){
+        clearAccountSwitcherExitTimer()
+        accountSwitcherClosing = false
+        dialog.classList.remove('is-visible', 'is-closing')
+        dialog.showModal()
+        window.requestAnimationFrame(() => {
+            if(dialog.open){
+                dialog.classList.add('is-visible')
+            }
+        })
+    }
+}
+
 function syncElementState(current, next){
     for(const attribute of [...current.attributes]){
         if(!next.hasAttribute(attribute.name)){
@@ -303,6 +455,7 @@ function render(){
 
     renderStatusCard()
     renderWindowControls()
+    renderAccountSwitcher()
 
     const nextView = renderer(state)
 
@@ -353,63 +506,64 @@ function randomBetween(min, max){
     return min + Math.random() * (max - min)
 }
 
-function spawnFallingChick(){
+function spawnFallingEasterEgg(){
     const layer = ensureEasterEggLayer()
     const viewportWidth = Math.max(window.innerWidth, 1)
     const viewportHeight = Math.max(window.innerHeight, 1)
-    const chickSize = randomBetween(58, 76)
-    const edgePadding = chickSize / 2 + 12
+    const mobAsset = FALLING_EASTER_EGG_ASSETS[Math.floor(Math.random() * FALLING_EASTER_EGG_ASSETS.length)]
+    const mobSize = randomBetween(mobAsset.minSize, mobAsset.maxSize)
+    const edgePadding = mobSize / 2 + 12
     const x = randomBetween(edgePadding, Math.max(edgePadding, viewportWidth - edgePadding))
     const duration = randomBetween(5600, 7600)
-    const chick = el('div', {
-        className: 'easter-egg-chick',
+    const mob = el('div', {
+        className: 'easter-egg-mob',
         style: {
-            '--chick-x': `${x}px`,
-            '--chick-size': `${chickSize}px`,
-            '--chick-start-y': `${randomBetween(-118, -72).toFixed(1)}px`,
-            '--chick-end-y': `${(viewportHeight + chickSize + 18).toFixed(1)}px`,
-            '--chick-drift-x': `${randomBetween(-42, 42).toFixed(1)}px`,
-            '--chick-tilt': `${randomBetween(-7, 7).toFixed(1)}deg`,
-            '--chick-duration': `${duration.toFixed(0)}ms`
+            '--mob-x': `${x}px`,
+            '--mob-size': `${mobSize}px`,
+            '--mob-start-y': `${randomBetween(-152, -96).toFixed(1)}px`,
+            '--mob-end-y': `${(viewportHeight + mobSize * 1.25 + 18).toFixed(1)}px`,
+            '--mob-drift-x': `${randomBetween(-42, 42).toFixed(1)}px`,
+            '--mob-tilt': `${randomBetween(-7, 7).toFixed(1)}deg`,
+            '--mob-duration': `${duration.toFixed(0)}ms`
         }
     },
         el('img', {
-            className: 'easter-egg-chick__image',
+            className: 'easter-egg-mob__image',
             attrs: {
-                src: './assets/chick-face.svg',
+                src: mobAsset.src,
                 alt: '',
                 'aria-hidden': 'true'
             }
         })
     )
 
-    layer.appendChild(chick)
-    window.setTimeout(() => chick.remove(), duration + FALLING_CHICK_REMOVE_BUFFER_MS)
+    layer.appendChild(mob)
+    window.setTimeout(() => mob.remove(), duration + FALLING_EASTER_EGG_REMOVE_BUFFER_MS)
 }
 
-function handleLaunchReadyChickFall(){
+function handleLaunchReadyEasterEggFall(){
     if(getStatusMeta().tone !== 'success'){
         return
     }
 
-    spawnFallingChick()
+    spawnFallingEasterEgg()
 }
 
-function bindLaunchReadyChickFall(){
+function bindLaunchReadyEasterEggFall(){
     const statusCard = document.getElementById('status-card')
 
     if(statusCard == null){
         return
     }
 
-    statusCard.onclick = handleLaunchReadyChickFall
+    statusCard.onclick = handleLaunchReadyEasterEggFall
     statusCard.onkeydown = event => {
         if(event.key !== 'Enter' && event.key !== ' '){
             return
         }
 
         event.preventDefault()
-        handleLaunchReadyChickFall()
+        handleLaunchReadyEasterEggFall()
     }
 }
 
@@ -428,6 +582,7 @@ async function handleSignIn({ launchAfterSignIn = false } = {}){
 
     state.pendingAction = 'sign-in'
     launcherController.updateActionButtons()
+    renderAccountSwitcher()
 
     try {
         const result = await window.starPrisonLauncher.signIn()
@@ -464,6 +619,38 @@ async function handleSignIn({ launchAfterSignIn = false } = {}){
     } finally {
         state.pendingAction = null
         launcherController.updateActionButtons()
+        renderAccountSwitcher()
+    }
+}
+
+async function handleSelectAccount(profileId){
+    const normalizedProfileId = typeof profileId === 'string' ? profileId.trim() : ''
+
+    if(normalizedProfileId.length === 0 || state.pendingAction != null){
+        return
+    }
+
+    if(normalizedProfileId === state.bootstrap?.authSummary?.profileId){
+        closeAccountSwitcher()
+        return
+    }
+
+    state.pendingAction = 'select-account'
+    renderAccountSwitcher()
+
+    try {
+        const result = await window.starPrisonLauncher.selectAccount(normalizedProfileId)
+        await refreshBootstrap(result.bootstrap)
+        closeAccountSwitcher()
+    } catch (error) {
+        closeAccountSwitcher()
+        showOverlay({
+            title: '계정 선택 실패',
+            body: overlayParagraph(error.message)
+        })
+    } finally {
+        state.pendingAction = null
+        renderAccountSwitcher()
     }
 }
 
@@ -557,8 +744,40 @@ async function handleDelegatedViewClick(event){
 
 function bindPersistentActions(){
     const viewHost = document.getElementById('view-host')
+    const accountSwitcherDialog = document.getElementById('account-switcher-dialog')
 
-    bindLaunchReadyChickFall()
+    bindLaunchReadyEasterEggFall()
+    document.getElementById('account-switcher-trigger').onclick = openAccountSwitcher
+    document.getElementById('account-switcher-close').onclick = closeAccountSwitcher
+    document.getElementById('account-switcher-add').onclick = () => {
+        closeAccountSwitcher()
+        void handleSignIn()
+    }
+    document.getElementById('account-switcher-list').addEventListener('click', event => {
+        const option = event.target.closest?.('[data-account-profile-id]')
+
+        if(option != null){
+            void handleSelectAccount(option.dataset.accountProfileId)
+        }
+    })
+    accountSwitcherDialog.addEventListener('cancel', event => {
+        event.preventDefault()
+        closeAccountSwitcher()
+    })
+    accountSwitcherDialog.addEventListener('click', event => {
+        if(event.target === accountSwitcherDialog){
+            closeAccountSwitcher()
+        }
+    })
+    accountSwitcherDialog.addEventListener('transitionend', event => {
+        if(event.target !== accountSwitcherDialog || event.propertyName !== 'opacity'){
+            return
+        }
+
+        if(accountSwitcherDialog.classList.contains('is-closing')){
+            finishAccountSwitcherExit(accountSwitcherDialog)
+        }
+    })
     viewHost.addEventListener('click', event => {
         void handleDelegatedViewClick(event)
     })
@@ -664,9 +883,13 @@ document.getElementById('overlay').addEventListener('cancel', event => {
     dismissOverlay()
 })
 
-initialize().catch(error => {
-    showOverlay({
-        title: '렌더러 초기화 실패',
-        body: overlayParagraph(error.message)
+initialize()
+    .catch(error => {
+        showOverlay({
+            title: '렌더러 초기화 실패',
+            body: overlayParagraph(error.message)
+        })
     })
-})
+    .finally(() => {
+        window.starPrisonStartupIntro?.revealMain()
+    })

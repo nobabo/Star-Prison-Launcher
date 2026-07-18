@@ -55,8 +55,8 @@ export function renderLandingView(state){
             el('div', { className: 'center-panel' },
                 el('div', { className: 'center-panel__nav', attrs: { 'aria-label': '네비게이션' } },
                     navCell('./assets/notice.svg', '공지사항', { navTarget: 'notices' }),
-                    navCell('./assets/settings.svg', '설정', { navTarget: 'settings' }),
-                    navCell('./assets/developer.svg', '개발사', { navTarget: 'developer' })
+                    navCell('./assets/developer.svg', '개발사', { navTarget: 'developer' }),
+                    navCell('./assets/settings.svg', '설정', { navTarget: 'settings' })
                 ),
                 el('div', { className: 'center-panel__divider', attrs: { 'aria-hidden': 'true' } }),
                 el('div', { className: 'center-panel__body' },
@@ -75,8 +75,8 @@ export function renderLandingView(state){
         el('div', { className: 'center-panel' },
             el('div', { className: 'center-panel__nav', attrs: { 'aria-label': '네비게이션' } },
                 navCell('./assets/notice.svg', '공지사항', { navTarget: 'notices' }),
-                navCell('./assets/settings.svg', '설정', { navTarget: 'settings' }),
-                navCell('./assets/developer.svg', '개발사', { navTarget: 'developer' })
+                navCell('./assets/developer.svg', '개발사', { navTarget: 'developer' }),
+                navCell('./assets/settings.svg', '설정', { navTarget: 'settings' })
             ),
             el('div', { className: 'center-panel__divider', attrs: { 'aria-hidden': 'true' } }),
             el('div', { className: 'center-panel__body' },

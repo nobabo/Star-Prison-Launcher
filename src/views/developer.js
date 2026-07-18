@@ -20,7 +20,7 @@ export function renderDeveloperView(_state){
         viewHeader('개발사', '// DEVELOPER'),
         el('article', { className: 'terminal-panel content-page__panel' },
             el('section', { className: 'developer-profile' },
-                el('p', { className: 'terminal-kicker', text: 'STUDIO' }),
+                el('p', { className: 'terminal-kicker', text: 'STUDIO KOKONUT' }),
                 el('h3', { className: 'developer-profile__title', text: '코코넛 스튜디오' })
             ),
             el('dl', { className: 'detail-list developer-details' },

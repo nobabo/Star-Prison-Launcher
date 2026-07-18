@@ -6,6 +6,7 @@ pub(crate) const EMBEDDED_DISTRIBUTION_CONFIG: &str =
     include_str!("../../config/distribution.json");
 pub(crate) const EMBEDDED_SERVER_MANIFEST: &str = include_str!("../../config/server.manifest.json");
 const APP_CONFIG_VERSION_KEY: &str = "configVersion";
+const CLIENT_CONFIG_VERSION_KEY: &str = "schemaVersion";
 
 pub(crate) fn storage_root_path() -> PathBuf {
     if let Ok(app_data_path) = std::env::var("APPDATA") {
@@ -614,8 +615,62 @@ pub(crate) fn load_app_config() -> Result<Value, String> {
     Ok(migrated)
 }
 
+fn client_config_version(config: &Value) -> u64 {
+    config
+        .get(CLIENT_CONFIG_VERSION_KEY)
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+}
+
+fn migrate_seeded_client_config(embedded: &Value, seeded: &Value) -> Result<(Value, bool), String> {
+    let embedded_version = client_config_version(embedded);
+    let seeded_version = client_config_version(seeded);
+
+    if embedded_version == 0 || seeded_version >= embedded_version {
+        return Ok((seeded.clone(), false));
+    }
+
+    let mut migrated = seeded
+        .as_object()
+        .cloned()
+        .ok_or_else(|| "로컬 client config는 JSON object여야 합니다.".to_string())?;
+    migrated.insert(
+        CLIENT_CONFIG_VERSION_KEY.to_string(),
+        Value::Number(embedded_version.into()),
+    );
+
+    if let Some(language) = embedded.pointer("/options/lang").cloned() {
+        let options = migrated
+            .entry("options".to_string())
+            .or_insert_with(|| Value::Object(Map::new()))
+            .as_object_mut()
+            .ok_or_else(|| "로컬 client config의 options는 JSON object여야 합니다.".to_string())?;
+        options.insert("lang".to_string(), language);
+    }
+
+    Ok((Value::Object(migrated), true))
+}
+
 pub(crate) fn load_client_config() -> Result<Value, String> {
-    read_seeded_or_embedded_json_file("config/client.config.json")
+    let _guard = CLIENT_CONFIG_MIGRATION_LOCK
+        .lock()
+        .map_err(|_| "클라이언트 설정 마이그레이션 잠금이 손상되었습니다.".to_string())?;
+    let embedded = read_embedded_json_file("config/client.config.json")?;
+    let path = storage_root_path().join("config/client.config.json");
+
+    if !path.exists() {
+        return Ok(embedded);
+    }
+
+    let seeded = read_json_file(&path)?;
+    let (migrated, needs_save) = migrate_seeded_client_config(&embedded, &seeded)?;
+
+    if needs_save {
+        let content = serde_json::to_string_pretty(&migrated).map_err(|error| error.to_string())?;
+        write_config_file_atomically(&path, &format!("{content}\n"))?;
+    }
+
+    Ok(migrated)
 }
 
 pub(crate) fn load_server_manifest() -> Result<Value, String> {
@@ -633,6 +688,7 @@ pub(crate) fn default_user_config() -> Value {
             "extraGameArgs": []
         },
         "authSession": null,
+        "authAccounts": [],
         "lastDiagnostics": []
     })
 }
@@ -745,11 +801,28 @@ pub(crate) fn load_or_create_user_config() -> Result<Value, String> {
     if unprotect_auth_session_from_storage(&mut merged).is_err() {
         if let Some(config) = merged.as_object_mut() {
             config.insert("authSession".to_string(), Value::Null);
+            config.insert("authAccounts".to_string(), Value::Array(Vec::new()));
             needs_save = true;
         }
     }
 
     if let Some(config) = merged.as_object_mut() {
+        let has_saved_accounts = config
+            .get("authAccounts")
+            .and_then(Value::as_array)
+            .is_some_and(|accounts| !accounts.is_empty());
+
+        if !has_saved_accounts {
+            if let Some(session) = config
+                .get("authSession")
+                .filter(|value| value.is_object())
+                .cloned()
+            {
+                config.insert("authAccounts".to_string(), Value::Array(vec![session]));
+                needs_save = true;
+            }
+        }
+
         needs_save |= config.remove("lastLaunchPlan").is_some();
     }
 
@@ -960,5 +1033,29 @@ mod user_config_migration_tests {
 
         assert!(!changed);
         assert_eq!(migrated, seeded);
+    }
+    #[test]
+    fn migrates_client_language_without_resetting_other_options() {
+        let embedded = json!({
+            "schemaVersion": 2,
+            "options": {
+                "lang": "ko_kr",
+                "renderDistance": "12"
+            }
+        });
+        let seeded = json!({
+            "schemaVersion": 1,
+            "options": {
+                "lang": "en_us",
+                "renderDistance": "24"
+            }
+        });
+
+        let (migrated, changed) = migrate_seeded_client_config(&embedded, &seeded).unwrap();
+
+        assert!(changed);
+        assert_eq!(migrated["schemaVersion"], 2);
+        assert_eq!(migrated["options"]["lang"], "ko_kr");
+        assert_eq!(migrated["options"]["renderDistance"], "24");
     }
 }

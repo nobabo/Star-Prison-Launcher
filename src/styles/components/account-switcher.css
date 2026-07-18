@@ -1,0 +1,345 @@
+.account-switcher-trigger {
+    position: fixed;
+    top: 50%;
+    right: 40px;
+    z-index: 110;
+    display: grid;
+    width: 62px;
+    height: 62px;
+    padding: 4px;
+    overflow: hidden;
+    border: 2px solid var(--accent);
+    border-radius: 50%;
+    background: rgb(12 17 29 / 58%);
+    box-shadow:
+        0 18px 42px rgb(0 0 0 / 34%),
+        0 0 0 5px rgb(244 166 200 / 12%),
+        inset 0 1px 0 rgb(255 255 255 / 22%);
+    transform: translateY(-50%);
+    cursor: pointer;
+    -webkit-app-region: no-drag;
+    transition:
+        transform 180ms ease,
+        border-color 180ms ease,
+        box-shadow 180ms ease;
+}
+
+.account-switcher-trigger[hidden] {
+    display: none;
+}
+
+.account-switcher-trigger:hover,
+.account-switcher-trigger:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    box-shadow:
+        0 20px 46px rgb(0 0 0 / 40%),
+        0 0 0 6px rgb(244 166 200 / 24%),
+        inset 0 1px 0 rgb(255 255 255 / 28%);
+    transform: translateY(-50%) scale(1.06);
+}
+
+.account-switcher-trigger__avatar,
+.account-switcher-option__avatar {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    border-radius: 50%;
+    background: linear-gradient(145deg, rgb(244 166 200 / 44%), rgb(18 24 39 / 88%));
+}
+
+.account-switcher-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    image-rendering: pixelated;
+}
+
+.account-switcher-dialog {
+    width: min(550px, calc(100vw - 24px), calc(100vh - 24px));
+    height: min(550px, calc(100vw - 24px), calc(100vh - 24px));
+    max-width: none;
+    max-height: none;
+    aspect-ratio: 1 / 1;
+    margin: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 42% 58% 45% 55% / 56% 44% 58% 42%;
+    overflow: hidden;
+    isolation: isolate;
+    color: var(--text-primary);
+    background: transparent;
+    box-shadow:
+        0 30px 90px rgb(0 0 0 / 30%),
+        inset 0 1px 0 rgb(255 255 255 / 14%);
+    backdrop-filter: blur(3px) saturate(0);
+    animation: overlay-outer-border-wave 12s ease-in-out infinite alternate;
+    opacity: 0;
+    filter: blur(18px);
+    will-change: border-radius, opacity, filter;
+    transition:
+        opacity 220ms ease-out,
+        filter 180ms ease-out;
+}
+
+.account-switcher-dialog.is-visible {
+    opacity: 1;
+    filter: blur(0);
+}
+
+.account-switcher-dialog.is-closing {
+    opacity: 0;
+    filter: blur(10px);
+}
+
+.account-switcher-dialog::before,
+.account-switcher-dialog::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.account-switcher-dialog::before {
+    z-index: 2;
+    border: 4px solid #fff;
+    border-radius: inherit;
+    opacity: 0.95;
+    box-shadow:
+        inset 0 0 26px rgb(255 255 255 / 16%),
+        0 0 22px rgb(255 255 255 / 22%);
+    animation: overlay-outline-shimmer 5.4s ease-in-out infinite;
+}
+
+.account-switcher-dialog::after {
+    z-index: 1;
+    background:
+        linear-gradient(160deg, rgb(255 217 232 / 18%) 0%, rgb(244 166 200 / 12%) 22%, rgb(255 255 255 / 0%) 42%, rgb(232 184 207 / 10%) 72%, rgb(244 223 232 / 28%) 100%);
+    opacity: 0.4;
+}
+
+.account-switcher-dialog::backdrop {
+    background: transparent;
+    backdrop-filter: blur(12px) saturate(0.85);
+    transition: backdrop-filter 240ms ease;
+}
+
+.account-switcher-dialog.is-closing::backdrop {
+    backdrop-filter: blur(0) saturate(1);
+}
+
+.account-switcher-panel {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    align-content: center;
+    box-sizing: border-box;
+    height: 100%;
+    gap: 18px;
+    padding: 32px;
+}
+
+.account-switcher-header,
+.account-switcher-footer,
+.account-switcher-item {
+    display: flex;
+    align-items: center;
+}
+
+.account-switcher-header {
+    position: relative;
+    justify-content: center;
+    gap: 18px;
+    text-align: center;
+}
+
+.account-switcher-header h2 {
+    margin: 4px 0 0;
+    font-family: var(--terminal-display-font);
+    font-size: 1.75rem;
+    font-weight: 400;
+}
+
+.account-switcher-close,
+.account-switcher-add,
+.account-switcher-option {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    border: 1px solid rgb(255 255 255 / 28%);
+    border-radius: 50%;
+    color: #fff;
+    background: rgb(255 255 255 / 8%);
+    cursor: pointer;
+}
+
+.account-switcher-close,
+.account-switcher-add {
+    width: 42px;
+    height: 42px;
+    padding: 10px;
+}
+
+.account-switcher-add {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    color: var(--accent);
+    background: transparent;
+    font-size: 2.35rem;
+    font-weight: 300;
+    line-height: 0.8;
+}
+
+.account-switcher-close {
+    position: absolute;
+    top: 50%;
+    right: 32px;
+    padding: 0;
+    font-size: 1.35rem;
+    line-height: 1;
+    transform: translateY(-50%);
+}
+
+.account-switcher-close:hover,
+.account-switcher-close:focus-visible,
+.account-switcher-add:hover,
+.account-switcher-add:focus-visible,
+.account-switcher-option:hover,
+.account-switcher-option:focus-visible {
+    border-color: var(--accent);
+    outline: none;
+    background: rgb(244 166 200 / 18%);
+}
+
+.account-switcher-add:hover,
+.account-switcher-add:focus-visible {
+    border-color: transparent;
+    background: transparent;
+    transform: scale(1.12);
+}
+
+.account-switcher-list {
+    display: grid;
+    justify-self: center;
+    gap: 10px;
+    width: min(100%, 420px);
+    max-height: min(50vh, 254px);
+    overflow-y: auto;
+    padding-right: 4px;
+    overscroll-behavior: contain;
+    scroll-snap-type: y proximity;
+    scrollbar-gutter: stable;
+}
+
+.account-switcher-list::-webkit-scrollbar {
+    display: block;
+    width: 6px;
+    background: transparent;
+}
+
+.account-switcher-list::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.account-switcher-list::-webkit-scrollbar-button:vertical:decrement,
+.account-switcher-list::-webkit-scrollbar-button:vertical:increment {
+    display: none;
+    min-height: 0;
+    height: 0;
+}
+
+.account-switcher-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.account-switcher-list::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    border-radius: 999px;
+    background: rgb(244 166 200 / 46%);
+}
+
+.account-switcher-item {
+    position: relative;
+    min-height: 78px;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    cursor: pointer;
+    scroll-snap-align: start;
+}
+
+.account-switcher-option {
+    width: 54px;
+    height: 54px;
+    padding: 3px;
+    border-width: 2px;
+}
+
+.account-switcher-option__avatar {
+    border-radius: 50%;
+}
+
+.account-switcher-option--active {
+    border-color: var(--accent);
+    box-shadow:
+        0 0 0 3px rgb(244 166 200 / 22%),
+        0 0 18px rgb(244 166 200 / 28%);
+}
+
+.account-switcher-name {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    font-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.account-switcher-name--active {
+    color: var(--accent);
+}
+
+.account-switcher-footer {
+    justify-content: center;
+    padding-top: 8px;
+}
+
+.account-switcher-add:disabled,
+.account-switcher-option:disabled {
+    cursor: wait;
+    opacity: 0.5;
+}
+
+@media (width <= 720px) {
+    .account-switcher-trigger {
+        right: 20px;
+        width: 54px;
+        height: 54px;
+    }
+
+    .account-switcher-panel {
+        padding: 20px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .account-switcher-trigger,
+    .account-switcher-dialog,
+    .account-switcher-dialog::before {
+        transition: none;
+        animation: none;
+    }
+
+    .account-switcher-dialog {
+        opacity: 1;
+        filter: none;
+    }
+}

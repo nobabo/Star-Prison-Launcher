@@ -65,8 +65,57 @@ pub(crate) fn sign_out() -> Result<Value, CommandError> {
     let mut user_config = load_or_create_user_config().map_err(command_error)?;
     let previous = user_config.clone();
 
+    let active_profile_id = user_config
+        .get("authSession")
+        .and_then(Value::as_object)
+        .and_then(|session| session.get("profileId"))
+        .and_then(Value::as_str)
+        .map(str::to_string);
+
     if let Some(config) = user_config.as_object_mut() {
-        config.insert("authSession".to_string(), Value::Null);
+        if let Some(accounts) = config.get_mut("authAccounts").and_then(Value::as_array_mut) {
+            accounts.retain(|account| {
+                account.get("profileId").and_then(Value::as_str) != active_profile_id.as_deref()
+            });
+            let next_session = accounts.first().cloned().unwrap_or(Value::Null);
+            config.insert("authSession".to_string(), next_session);
+        } else {
+            config.insert("authSession".to_string(), Value::Null);
+        }
+    }
+
+    save_user_config_if_changed(&previous, &user_config).map_err(command_error)?;
+
+    Ok(json!({
+        "ok": true,
+        "bootstrap": build_bootstrap_payload().map_err(command_error)?
+    }))
+}
+
+#[tauri::command]
+pub(crate) fn select_account(profile_id: String) -> Result<Value, CommandError> {
+    let requested_profile_id = profile_id.trim();
+
+    if requested_profile_id.is_empty() {
+        return Err(command_error("선택할 계정 정보가 비어 있습니다."));
+    }
+
+    let _mutation_guard = lock_user_config_mutation().map_err(command_error)?;
+    let mut user_config = load_or_create_user_config().map_err(command_error)?;
+    let previous = user_config.clone();
+    let session = user_config
+        .get("authAccounts")
+        .and_then(Value::as_array)
+        .and_then(|accounts| {
+            accounts.iter().find(|account| {
+                account.get("profileId").and_then(Value::as_str) == Some(requested_profile_id)
+            })
+        })
+        .cloned()
+        .ok_or_else(|| command_error("저장된 계정을 찾지 못했습니다. 다시 로그인해 주세요."))?;
+
+    if let Some(config) = user_config.as_object_mut() {
+        config.insert("authSession".to_string(), session);
     }
 
     save_user_config_if_changed(&previous, &user_config).map_err(command_error)?;

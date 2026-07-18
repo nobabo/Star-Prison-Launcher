@@ -22,6 +22,8 @@ corepack enable
 pnpm install
 pnpm dev
 ```
+`pnpm dev`는 프런트엔드 전용 개발 모드로 실행되어 HTML/CSS/JavaScript 변경 시 웹뷰만 리로드합니다. Rust 백엔드 변경까지 감시해 런처를 자동 재시작하려면 `pnpm dev:backend`를 사용합니다.
+
 
 WSL에서 Windows Node/Rust 경로를 자동으로 붙여 실행하려면:
 

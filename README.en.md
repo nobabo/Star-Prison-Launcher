@@ -22,6 +22,8 @@ corepack enable
 pnpm install
 pnpm dev
 ```
+`pnpm dev` runs in frontend-only development mode, reloading only the webview for HTML/CSS/JavaScript changes. Use `pnpm dev:backend` when Rust backend changes should also restart the launcher automatically.
+
 
 From WSL, use the helper script to prepend Windows Node/Rust paths:
 

@@ -46,6 +46,16 @@ pub(crate) fn protect_auth_session_for_storage(config: &Value) -> Result<Value, 
         protect_auth_field(session, "accessToken")?;
     }
 
+    if let Some(accounts) = next_config
+        .get_mut("authAccounts")
+        .and_then(Value::as_array_mut)
+    {
+        for session in accounts.iter_mut().filter_map(Value::as_object_mut) {
+            protect_auth_field(session, "refreshToken")?;
+            protect_auth_field(session, "accessToken")?;
+        }
+    }
+
     Ok(next_config)
 }
 
@@ -53,6 +63,13 @@ pub(crate) fn unprotect_auth_session_from_storage(config: &mut Value) -> Result<
     if let Some(session) = config.get_mut("authSession").and_then(Value::as_object_mut) {
         unprotect_auth_field(session, "refreshToken")?;
         unprotect_auth_field(session, "accessToken")?;
+    }
+
+    if let Some(accounts) = config.get_mut("authAccounts").and_then(Value::as_array_mut) {
+        for session in accounts.iter_mut().filter_map(Value::as_object_mut) {
+            unprotect_auth_field(session, "refreshToken")?;
+            unprotect_auth_field(session, "accessToken")?;
+        }
     }
 
     Ok(())

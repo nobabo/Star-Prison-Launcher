@@ -61,6 +61,110 @@
     border-radius: 16px;
 }
 
+.icon-only-button,
+.terminal-icon-button,
+.center-nav__cell,
+.center-launch,
+.window-control-button,
+.overlay-close-button {
+    position: relative;
+}
+
+.terminal-icon-button::after,
+.center-nav__cell::after,
+.center-launch::after,
+.window-control-button::after,
+.overlay-close-button::after {
+    content: attr(aria-label);
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    width: max-content;
+    max-width: min(240px, 70vw);
+    padding: 7px 10px;
+    border: 1px solid var(--terminal-border);
+    border-radius: 8px;
+    background: rgb(12 10 18 / 96%);
+    color: var(--terminal-text);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 5px);
+    transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.center-nav__cell::after,
+.window-control-button::after,
+.overlay-close-button::after {
+    top: calc(100% + 8px);
+    bottom: auto;
+    transform: translate(-50%, -5px);
+}
+
+.terminal-icon-button:hover::after,
+.terminal-icon-button:focus-visible::after,
+.center-nav__cell:hover::after,
+.center-nav__cell:focus-visible::after,
+.center-launch:hover::after,
+.center-launch:focus-visible::after,
+.window-control-button:hover::after,
+.window-control-button:focus-visible::after,
+.overlay-close-button:hover::after,
+.overlay-close-button:focus-visible::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.account-profile-copy,
+.account-connect-actions {
+    position: relative;
+}
+
+.account-profile-copy::after,
+.account-connect-actions::after {
+    content: '';
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    width: max-content;
+    max-width: min(240px, 70vw);
+    padding: 7px 10px;
+    border: 1px solid var(--terminal-border);
+    border-radius: 8px;
+    background: rgb(12 10 18 / 96%);
+    color: var(--terminal-text);
+    font-size: 0.72rem;
+    font-weight: 700;
+    line-height: 1.25;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-50%, 5px);
+    transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.account-profile-copy:has(.account-sign-out-button:hover, .account-sign-out-button:focus-visible)::after {
+    content: '연결 해제';
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.account-connect-actions:has(#sign-in-button:hover, #sign-in-button:focus-visible)::after {
+    content: '계정 연결';
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
 .button-icon {
     position: relative;
     z-index: 1;

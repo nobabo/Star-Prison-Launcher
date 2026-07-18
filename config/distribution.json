@@ -21,9 +21,9 @@
         "mods": {
           "version": "1.0.0",
           "fileName": "mods.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=c22ab8315233e9aa65fce26d9ace9152fd002baa29ac5df72a478f14b9812aa2",
-          "size": 44315533,
-          "sha256": "c22ab8315233e9aa65fce26d9ace9152fd002baa29ac5df72a478f14b9812aa2"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=c7817e422e787f393ef4facd19aeadb40029d33efe89c39bac0f6fa852200e4e",
+          "size": 49398406,
+          "sha256": "c7817e422e787f393ef4facd19aeadb40029d33efe89c39bac0f6fa852200e4e"
         },
         "config": {
           "version": "1.0.0",
@@ -68,7 +68,7 @@
             "required": true
           },
           {
-            "path": "mods/AsyncParticles-Lite-0.8.0-alpha+1.21.11.jar",
+            "path": "mods/async-pack-scan-0.2.14.jar",
             "kind": "mod",
             "required": true
           },
@@ -118,12 +118,22 @@
             "required": true
           },
           {
+            "path": "mods/ConsumableOptimizer-2.2.1-1.21.5.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/continuity-3.0.1-beta.1+1.21.11.jar",
             "kind": "mod",
             "required": true
           },
           {
             "path": "mods/Controlling-fabric-1.21.11-29.0.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/debugify-1.21.11+1.1.jar",
             "kind": "mod",
             "required": true
           },
@@ -158,6 +168,11 @@
             "required": true
           },
           {
+            "path": "mods/FastServerPings-1.1.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/ferritecore-8.2.0-fabric.jar",
             "kind": "mod",
             "required": true
@@ -183,11 +198,6 @@
             "required": true
           },
           {
-            "path": "mods/GPUBooster-1.2.5-1.21.11-fabric.jar",
-            "kind": "mod",
-            "required": true
-          },
-          {
             "path": "mods/Handful-1.0.0-fabric+mc1.21.11.jar",
             "kind": "mod",
             "required": true
@@ -198,12 +208,27 @@
             "required": true
           },
           {
+            "path": "mods/Iceberg-1.21.11-fabric-1.4.0.1.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/ImmediatelyFast-Fabric-1.14.3+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/iris-fabric-1.10.7+mc1.21.11.jar",
             "kind": "mod",
             "required": true
           },
           {
-            "path": "mods/jei-1.21.11-fabric-27.15.0.47.jar",
+            "path": "mods/ItemBorders-1.21.11-fabric-1.3.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/jei-1.21.11-fabric-27.17.0.50.jar",
             "kind": "mod",
             "required": true
           },
@@ -218,7 +243,17 @@
             "required": true
           },
           {
+            "path": "mods/krypton-0.2.10.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/lambdynamiclights-4.9.1+1.21.11.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/libjf-3.19.12.jar",
             "kind": "mod",
             "required": true
           },
@@ -234,6 +269,11 @@
           },
           {
             "path": "mods/maptooltip-5.0.0+1.21.11-fabric.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/midnightlib-fabric-1.9.3+1.21.11.jar",
             "kind": "mod",
             "required": true
           },
@@ -258,6 +298,11 @@
             "required": true
           },
           {
+            "path": "mods/obe+1.21.11-1.1.31.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/OverflowingBars-v21.11.0-mc1.21.11-Fabric.jar",
             "kind": "mod",
             "required": true
@@ -278,12 +323,17 @@
             "required": true
           },
           {
+            "path": "mods/Prism-1.21.11-fabric-1.1.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
             "path": "mods/PuzzlesLib-v21.11.13-mc1.21.11-Fabric.jar",
             "kind": "mod",
             "required": true
           },
           {
-            "path": "mods/reeses-sodium-options-fabric-2.2.2+mc1.21.11.jar",
+            "path": "mods/reeses-sodium-options-fabric-2.2.3+mc1.21.11.jar",
             "kind": "mod",
             "required": true
           },
@@ -294,6 +344,11 @@
           },
           {
             "path": "mods/Searchables-fabric-1.21.11-1.0.4.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/skinlayers3d-fabric-1.11.2-mc1.21.11.jar",
             "kind": "mod",
             "required": true
           },
@@ -309,11 +364,6 @@
           },
           {
             "path": "mods/sodium-fabric-0.8.12+mc1.21.11.jar",
-            "kind": "mod",
-            "required": true
-          },
-          {
-            "path": "mods/sodium-shadowy-path-blocks-fabric-6.0.0.jar",
             "kind": "mod",
             "required": true
           },
@@ -348,12 +398,22 @@
             "required": true
           },
           {
-            "path": "mods/xaerominimap-fabric-1.21.11-26.2.0.jar",
+            "path": "mods/WalksyLib-0.9.992+1.21.11.jar",
             "kind": "mod",
             "required": true
           },
           {
-            "path": "mods/xaeroworldmap-fabric-1.21.11-1.42.0.jar",
+            "path": "mods/xaerominimap-fabric-1.21.11-26.3.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/xaeroworldmap-fabric-1.21.11-1.43.0.jar",
+            "kind": "mod",
+            "required": true
+          },
+          {
+            "path": "mods/xlpackets-1.0.5-1.21.jar",
             "kind": "mod",
             "required": true
           },
@@ -385,8 +445,8 @@
             "path": "config/iris.properties",
             "kind": "config-seed",
             "required": true,
-            "size": 294,
-            "sha256": "bdae8f5375420d2013cd03c80e6aa449635d3a84330db8dd6d2c9e1b11a09d11"
+            "size": 312,
+            "sha256": "3571a717b2eab3279ed4dbf500032145fa947c70bbcaa9286337a7324bcd9a01"
           },
           {
             "path": "config/visuality.json",

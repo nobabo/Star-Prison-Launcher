@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tauri::{Emitter, Manager, WebviewUrl, WebviewWindowBuilder, WindowEvent};
 use url::Url;
@@ -68,6 +68,7 @@ pub fn run() {
             commands::get_bootstrap,
             commands::sign_in,
             commands::sign_out,
+            commands::select_account,
             commands::select_data_directory,
             commands::open_managed_directory,
             commands::save_settings,

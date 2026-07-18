@@ -1,0 +1,5 @@
+# Cargo/Tauri generated outputs must never trigger a development restart.
+/target/
+
+# Tauri capability schema output is generated from the source configuration.
+/gen/schemas/

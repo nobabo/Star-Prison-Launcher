@@ -9,6 +9,7 @@
 .field {
     display: grid;
     gap: 8px;
+    margin-bottom: 20px;
 }
 
 .toggle-field {
@@ -49,13 +50,97 @@
   resize: vertical;
 }
 
-.field select {
+.custom-select {
+    position: relative;
+    width: 100%;
+}
+
+.custom-select__native {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.custom-select__trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 14px;
+    background: rgb(255 255 255 / 5%);
+    color: var(--text-primary);
+    font-size: 0.94rem;
+    text-align: left;
     cursor: pointer;
 }
 
-.field select option {
-    background: #000;
-    color: #fff;
+.custom-select__trigger:focus-visible,
+.custom-select__trigger[aria-expanded='true'] {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(244 166 200 / 16%);
+    background: rgb(255 255 255 / 7%);
+}
+
+.custom-select__caret {
+    position: relative;
+    top: -2px;
+    flex: 0 0 9px;
+    width: 9px;
+    height: 9px;
+    border-right: 2px solid currentcolor;
+    border-bottom: 2px solid currentcolor;
+    color: var(--text-secondary);
+    transform: rotate(45deg);
+    transform-origin: center;
+    transition: transform 160ms ease;
+}
+
+.custom-select__trigger[aria-expanded='true'] .custom-select__caret {
+    transform: rotate(225deg);
+}
+
+.custom-select__menu {
+    position: absolute;
+    z-index: 10;
+    top: calc(100% + 6px);
+    right: 0;
+    left: 0;
+    display: grid;
+    gap: 2px;
+    padding: 6px;
+    border: 1px solid var(--terminal-border);
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: 0 14px 32px rgb(0 0 0 / 24%);
+    backdrop-filter: blur(14px);
+}
+
+.custom-select__menu[hidden] {
+    display: none;
+}
+
+.custom-select__option {
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.94rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.custom-select__option:hover,
+.custom-select__option:focus-visible,
+.custom-select__option[aria-selected='true'] {
+    outline: none;
+    background: var(--accent-soft);
+    color: var(--text-primary);
 }
 
 .field input:focus,

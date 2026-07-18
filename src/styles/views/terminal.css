@@ -51,6 +51,7 @@
     padding: 28px 32px 32px;
     min-height: 0;
     height: 100%;
+    overflow-x: hidden;
     overflow-y: auto;
     scrollbar-width: thin;
 }
@@ -64,31 +65,67 @@
 
 .terminal-view__back {
     margin-left: auto;
-    width: 120px;
-    height: 120px;
-    border: none;
+    width: 40px;
+    height: 64px;
+    position: relative;
+    border: 0;
     background: transparent;
     border-radius: 0;
-    color: var(--terminal-pink);
-    transition: color 200ms ease;
+    color: #fff;
+    box-shadow: none;
+    transition: color 180ms ease;
+}
+
+.terminal-view__back::before {
+    content: '';
+    position: absolute;
+    z-index: 0;
+    inset: 6px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, rgb(255 90 158 / 44%), transparent 68%);
+    filter: blur(14px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 180ms ease;
+}
+
+.terminal-view__back::after {
+    right: 0;
+    left: auto;
+    transform: translateY(5px);
 }
 
 .terminal-view__back:hover,
 .terminal-view__back:focus-visible {
     background: transparent;
     border-color: transparent;
-    color: var(--terminal-pink-glow);
+    color: #fff;
+}
+
+.terminal-view__back:hover::before,
+.terminal-view__back:focus-visible::before {
+    opacity: 0.9;
+}
+
+.terminal-view__back:hover::after,
+.terminal-view__back:focus-visible::after {
+    transform: translateY(0);
 }
 
 .terminal-view__back .button-icon {
-    width: 96px;
-    height: 96px;
-    transition: transform 220ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    z-index: 1;
+    width: 56px;
+    height: 56px;
+    filter: none;
+    transition: filter 180ms ease;
 }
 
 .terminal-view__back:hover .button-icon,
 .terminal-view__back:focus-visible .button-icon {
-    transform: scale(1.15) rotate(-8deg);
+    filter:
+        drop-shadow(0 0 5px rgb(255 90 158 / 70%))
+        drop-shadow(0 0 12px rgb(255 90 158 / 36%));
 }
 
 .terminal-view__heading {

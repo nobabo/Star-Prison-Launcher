@@ -32,6 +32,31 @@ pub(crate) fn auth_summary(user_config: &Value) -> AuthSummary {
     }
 }
 
+pub(crate) fn auth_account_summaries(user_config: &Value) -> Vec<Value> {
+    user_config
+        .get("authAccounts")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter_map(Value::as_object)
+        .filter_map(|session| {
+            let player_name = session.get("playerName")?.as_str()?.trim();
+            let profile_id = session.get("profileId")?.as_str()?.trim();
+
+            if player_name.is_empty() || profile_id.is_empty() {
+                return None;
+            }
+
+            Some(json!({
+                "playerName": player_name,
+                "profileId": profile_id,
+                "expiresAt": session.get("expiresAt").cloned().unwrap_or(Value::Null),
+                "source": session.get("source").cloned().unwrap_or_else(|| Value::String("microsoft".to_string()))
+            }))
+        })
+        .collect()
+}
+
 pub(crate) fn run_preflight(auth_summary: &AuthSummary) -> PreflightReport {
     let mut diagnostics = Vec::new();
 
@@ -80,4 +105,30 @@ pub(crate) fn app_config_payload(app_config: &Value) -> Value {
             "fallbackCards": []
         }))
     })
+}
+
+#[cfg(test)]
+mod auth_account_summary_tests {
+    use super::*;
+
+    #[test]
+    fn saved_account_summaries_exclude_tokens() {
+        let user_config = json!({
+            "authAccounts": [{
+                "source": "microsoft",
+                "refreshToken": "private-refresh-token",
+                "accessToken": "private-access-token",
+                "playerName": "Alpha",
+                "profileId": "profile-a",
+                "expiresAt": 1234
+            }]
+        });
+
+        let summaries = auth_account_summaries(&user_config);
+
+        assert_eq!(summaries.len(), 1);
+        assert_eq!(summaries[0]["playerName"], "Alpha");
+        assert!(summaries[0].get("refreshToken").is_none());
+        assert!(summaries[0].get("accessToken").is_none());
+    }
 }

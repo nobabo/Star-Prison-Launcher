@@ -10,11 +10,10 @@ export function viewHeader(title, eyebrow){
             className: 'terminal-icon-button terminal-view__back back-to-landing-button',
             attrs: {
                 type: 'button',
-                'aria-label': '홈으로 돌아가기',
-                title: '홈으로 돌아가기'
+                'aria-label': '메인 화면으로 돌아가기'
             }
         },
-            iconImage('./assets/game.svg')
+            iconImage('./assets/home-back.svg')
         )
     )
 }

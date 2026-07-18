@@ -41,6 +41,9 @@ export function createLauncherBridge(){
         signOut(){
             return invoke('sign_out')
         },
+        selectAccount(profileId){
+            return invoke('select_account', { profileId })
+        },
         selectDataDirectory(currentPath){
             return invoke('select_data_directory', { currentPath })
         },

@@ -1,5 +1,5 @@
 {
-    "configVersion": 1,
+    "configVersion": 2,
     "supportUrl": "https://github.com/nobabo",
     "microsoftClientId": "007a0de5-c81c-4e3a-a296-6a8776e9ba47",
     "microsoftRedirectUri": "https://login.microsoftonline.com/common/oauth2/nativeclient",
@@ -7,6 +7,7 @@
         "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/distribution.json"
     },
     "allowPrerelease": false,
+    "autoConnectServer": "gomsv.kr",
     "discordNotices": {
         "enabled": true,
         "endpointUrl": "https://star-prison-discord-notices.yjh802637.workers.dev/notices",

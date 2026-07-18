@@ -175,21 +175,17 @@ pub(crate) fn build_single_server_list_nbt(
 pub(crate) fn ensure_default_server_list(
     game_directory: &Path,
     server_manifest: &Value,
+    app_config: &Value,
 ) -> Result<(), String> {
     let servers_dat_path = game_directory.join("servers.dat");
-    let server_address = server_manifest
-        .get("address")
-        .and_then(Value::as_str)
-        .map(str::trim)
-        .filter(|address| !address.is_empty())
-        .ok_or_else(|| "config/server.manifest.json에 address 값이 없습니다.".to_string())?;
+    let server_address = configured_auto_connect_server(app_config, server_manifest)?;
     let server_name = server_manifest
         .get("name")
         .and_then(Value::as_str)
         .map(str::trim)
         .filter(|name| !name.is_empty())
         .unwrap_or("StarPrison");
-    let content = build_single_server_list_nbt(server_name, server_address)?;
+    let content = build_single_server_list_nbt(server_name, &server_address)?;
     let tmp_path = servers_dat_path.with_extension("dat.tmp");
 
     fs::write(&tmp_path, content).map_err(|error| {
@@ -359,7 +355,9 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
             error,
         )
     })?;
-    ensure_default_server_list(&game_directory, &server_manifest)?;
+    emit_launch_state(app, "클라이언트 설정 적용", 0.60);
+    apply_client_config_options(&game_directory)?;
+    ensure_default_server_list(&game_directory, &server_manifest, &app_config)?;
 
     if should_reinstall_launcher_content {
         show_launcher_content_reinstall_notice(
@@ -398,6 +396,7 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
         &bundle_root,
         &server_manifest,
         &user_config,
+        &app_config,
         launch_plan_value,
     )?;
     emit_launch_state(app, "실행 정보 최종 저장", 0.80);
@@ -473,16 +472,9 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
 
     emit_launch_state(app, "자바 실행 명령 구성", 0.86);
     let process_log_path = minecraft_process_log_path()?;
-    let process_stdout = File::create(&process_log_path).map_err(|error| {
+    let process_log_file = File::create(&process_log_path).map_err(|error| {
         io_error(
             "Minecraft 프로세스 로그 파일을 만들지 못했습니다",
-            &process_log_path,
-            error,
-        )
-    })?;
-    let process_stderr = process_stdout.try_clone().map_err(|error| {
-        io_error(
-            "Minecraft 프로세스 로그 파일 핸들을 복제하지 못했습니다",
             &process_log_path,
             error,
         )
@@ -491,8 +483,8 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
     command
         .args(&args)
         .current_dir(&game_directory)
-        .stdout(Stdio::from(process_stdout))
-        .stderr(Stdio::from(process_stderr));
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     emit_launch_state(app, "자바 프로세스 실행", 0.92);
     let mut child = command.spawn().map_err(|error| {
@@ -507,6 +499,7 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
         )
     })?;
     let process_id = child.id();
+    let log_readers = capture_filtered_minecraft_logs(&mut child, process_log_file);
 
     if let Err(lock_error) = update_game_lock_process_id(process_id) {
         let termination_error = terminate_process_tree(process_id).err();
@@ -525,7 +518,13 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
     GAME_TERMINATION_REQUESTED.store(false, Ordering::SeqCst);
     minimize_launcher_window(app);
     emit_launch_state(app, "게임 창으로 전환합니다", 1.0);
-    monitor_game_process(app.clone(), child, process_id, process_log_path.clone());
+    monitor_game_process(
+        app.clone(),
+        child,
+        process_id,
+        process_log_path.clone(),
+        log_readers,
+    );
 
     Ok(json!({
         "ok": true,

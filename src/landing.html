@@ -4,9 +4,32 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>별도소 런처</title>
+        <script src="./app/startup-intro.js"></script>
         <link rel="stylesheet" href="./styles/app.css" />
     </head>
     <body>
+        <section class="startup-intro" id="startup-intro" role="status" aria-label="별도소 런처를 시작하는 중입니다">
+            <div class="startup-intro__grid" aria-hidden="true"></div>
+            <div class="startup-intro__scan" aria-hidden="true"></div>
+            <div class="startup-intro__center">
+                <div class="startup-intro__emblem" aria-hidden="true">
+                    <div class="startup-intro__orbit startup-intro__orbit--outer"></div>
+                    <div class="startup-intro__orbit startup-intro__orbit--inner"></div>
+                    <span class="startup-intro__corner startup-intro__corner--top-left"></span>
+                    <span class="startup-intro__corner startup-intro__corner--top-right"></span>
+                    <span class="startup-intro__corner startup-intro__corner--bottom-left"></span>
+                    <span class="startup-intro__corner startup-intro__corner--bottom-right"></span>
+                    <div class="startup-intro__logo-crop">
+                        <img class="startup-intro__logo" src="./assets/logo.png" alt="" />
+                    </div>
+                </div>
+                <div class="startup-intro__status">
+                    <span class="startup-intro__status-dot" aria-hidden="true"></span>
+                    <span>STAR PRISON · LAUNCHER ONLINE</span>
+                </div>
+            </div>
+        </section>
+
         <div class="page-shell">
             <header class="topbar">
                 <div class="topbar-brand" aria-label="별도소"></div>
@@ -21,12 +44,28 @@
             </header>
 
             <main class="page-content">
-                <div class="top-logo">
-                    <img class="top-logo__img" src="./assets/logo.png" alt="" aria-hidden="true" />
-                </div>
                 <section class="view-host" id="view-host"></section>
             </main>
+
+            <button class="account-switcher-trigger" id="account-switcher-trigger" type="button" aria-label="계정 선택" title="계정 선택" hidden>
+                <span class="account-switcher-trigger__avatar" id="account-switcher-trigger-avatar" aria-hidden="true"></span>
+            </button>
         </div>
+
+        <dialog class="account-switcher-dialog" id="account-switcher-dialog" aria-labelledby="account-switcher-title">
+            <section class="account-switcher-panel">
+                <header class="account-switcher-header">
+                    <div>
+                        <h2 id="account-switcher-title">계정 선택</h2>
+                    </div>
+                    <button class="account-switcher-close" id="account-switcher-close" type="button" aria-label="계정 선택 창 닫기" title="닫기">×</button>
+                </header>
+                <div class="account-switcher-list" id="account-switcher-list"></div>
+                <footer class="account-switcher-footer">
+                    <button class="account-switcher-add" id="account-switcher-add" type="button" aria-label="다른 Microsoft 계정 추가" title="다른 Microsoft 계정 추가">+</button>
+                </footer>
+            </section>
+        </dialog>
 
         <dialog class="overlay" id="overlay">
             <div class="overlay-scrim" aria-hidden="true"></div>

@@ -76,10 +76,30 @@ pub(crate) fn manifest_working_directory(server_manifest: &Value) -> String {
         .unwrap_or("instances/default")
         .to_string()
 }
+pub(crate) fn configured_auto_connect_server(
+    app_config: &Value,
+    server_manifest: &Value,
+) -> Result<String, String> {
+    app_config
+        .get("autoConnectServer")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|address| !address.is_empty())
+        .or_else(|| {
+            server_manifest
+                .get("address")
+                .and_then(Value::as_str)
+                .map(str::trim)
+                .filter(|address| !address.is_empty())
+        })
+        .map(str::to_string)
+        .ok_or_else(|| "자동 접속 서버 주소가 설정되지 않았습니다.".to_string())
+}
 
 pub(crate) fn build_replacement_map(
     bundle_root: &Path,
     server_manifest: &Value,
+    app_config: &Value,
     user_config: &Value,
     launch_plan: Option<&Value>,
 ) -> Result<Map<String, Value>, String> {
@@ -180,15 +200,7 @@ pub(crate) fn build_replacement_map(
     );
     variables.insert(
         "server_address".to_string(),
-        Value::String(
-            server_manifest
-                .get("address")
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|address| !address.is_empty())
-                .ok_or_else(|| "config/server.manifest.json에 address 값이 없습니다.".to_string())?
-                .to_string(),
-        ),
+        Value::String(configured_auto_connect_server(app_config, server_manifest)?),
     );
     variables.insert(
         "classpath_separator".to_string(),
@@ -365,6 +377,7 @@ pub(crate) fn build_launch_arguments(
     bundle_root: &Path,
     server_manifest: &Value,
     user_config: &Value,
+    app_config: &Value,
     launch_plan: Option<&Value>,
 ) -> Result<Vec<String>, String> {
     let settings = user_config
@@ -375,7 +388,13 @@ pub(crate) fn build_launch_arguments(
         .get("launch")
         .and_then(Value::as_object)
         .ok_or_else(|| "서버 manifest에 launch 설정이 없습니다.".to_string())?;
-    let variables = build_replacement_map(bundle_root, server_manifest, user_config, launch_plan)?;
+    let variables = build_replacement_map(
+        bundle_root,
+        server_manifest,
+        app_config,
+        user_config,
+        launch_plan,
+    )?;
     let max_ram_mb = settings
         .get("maxRamMb")
         .and_then(Value::as_u64)
@@ -474,4 +493,79 @@ pub(crate) fn build_launch_arguments(
     append_game_resolution_args(&mut args, settings);
 
     Ok(args)
+}
+
+#[cfg(test)]
+mod auto_connect_server_tests {
+    use super::*;
+
+    #[test]
+    fn app_config_server_takes_precedence() {
+        let app_config = json!({ "autoConnectServer": "play.example.com:25570" });
+        let server_manifest = json!({ "address": "fallback.example.com" });
+
+        assert_eq!(
+            configured_auto_connect_server(&app_config, &server_manifest).unwrap(),
+            "play.example.com:25570"
+        );
+    }
+
+    #[test]
+    fn server_manifest_is_used_as_a_backward_compatible_fallback() {
+        let app_config = json!({});
+        let server_manifest = json!({ "address": "fallback.example.com" });
+
+        assert_eq!(
+            configured_auto_connect_server(&app_config, &server_manifest).unwrap(),
+            "fallback.example.com"
+        );
+    }
+
+    #[test]
+    fn missing_server_address_is_rejected() {
+        assert!(configured_auto_connect_server(&json!({}), &json!({})).is_err());
+    }
+    #[test]
+    fn launch_arguments_include_quick_play_server() {
+        let server_manifest = json!({
+            "minecraftVersion": "1.21.11",
+            "address": "fallback.example.com",
+            "java": { "recommendedRamMb": 8192 },
+            "launch": {
+                "jvmArgs": [],
+                "gameArgs": []
+            }
+        });
+        let user_config = json!({
+            "authSession": {
+                "playerName": "Player",
+                "profileId": "00000000000000000000000000000000",
+                "accessToken": "test-token"
+            },
+            "settings": {
+                "maxRamMb": 8192,
+                "gameResolution": "default",
+                "extraJvmArgs": [],
+                "extraGameArgs": []
+            }
+        });
+        let app_config = json!({ "autoConnectServer": "play.example.com:25570" });
+        let launch_plan = json!({
+            "mainClass": "net.fabricmc.loader.impl.launch.knot.KnotClient",
+            "gameArgs": []
+        });
+
+        let args = build_launch_arguments(
+            Path::new("C:/game"),
+            &server_manifest,
+            &user_config,
+            &app_config,
+            Some(&launch_plan),
+        )
+        .unwrap();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--quickPlayMultiplayer", "play.example.com:25570"]));
+    }
 }

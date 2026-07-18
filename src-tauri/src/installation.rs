@@ -37,23 +37,39 @@ pub(crate) fn apply_client_config_options(game_directory: &Path) -> Result<(), S
     } else {
         Vec::new()
     };
+    let mut changed = false;
     let mut existing_keys = HashSet::new();
+    let configured_language = configured_options.get("lang").and_then(client_option_value);
 
-    for line in &lines {
-        if let Some((key, _)) = line.split_once(':') {
-            existing_keys.insert(key.to_string());
+    for line in &mut lines {
+        let parsed = line
+            .split_once(':')
+            .map(|(key, value)| (key.to_string(), value.to_string()));
+        let Some((key, current_value)) = parsed else {
+            continue;
+        };
+        existing_keys.insert(key.clone());
+
+        if key == "lang"
+            && configured_language
+                .as_deref()
+                .is_some_and(|language| language != current_value)
+        {
+            *line = format!("lang:{}", configured_language.as_deref().unwrap_or("ko_kr"));
+            changed = true;
         }
     }
 
-    let mut changed = false;
     for (key, value) in configured_options {
-        if !existing_keys.contains(key) {
-            let Some(value) = client_option_value(value) else {
-                continue;
-            };
-            lines.push(format!("{key}:{value}"));
-            changed = true;
+        if existing_keys.contains(key) {
+            continue;
         }
+
+        let Some(value) = client_option_value(value) else {
+            continue;
+        };
+        lines.push(format!("{key}:{value}"));
+        changed = true;
     }
 
     if !changed {

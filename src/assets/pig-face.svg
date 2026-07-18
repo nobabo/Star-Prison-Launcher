@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-labelledby="title desc">
+  <title id="title">Front-facing block pig</title>
+  <desc id="desc">A voxel-style pink pig with square eyes, a block snout, and two short legs.</desc>
+  <style>
+    :root {
+      --outline: #0a0909;
+      --pig: #f28b8e;
+      --pig-light: #f59b9d;
+      --snout: #ed7f83;
+      --nostril: #a65355;
+      --hoof: #a75254;
+      --eye: #050505;
+    }
+  </style>
+  <rect x="20" y="20" width="216" height="188" fill="var(--outline)" />
+  <rect x="28" y="28" width="200" height="172" fill="var(--pig)" />
+  <rect x="28" y="28" width="200" height="40" fill="var(--pig-light)" />
+  <rect x="52" y="84" width="40" height="40" fill="var(--eye)" />
+  <rect x="164" y="84" width="40" height="40" fill="var(--eye)" />
+  <rect x="76" y="120" width="104" height="68" fill="var(--outline)" />
+  <rect x="84" y="128" width="88" height="52" fill="var(--snout)" />
+  <rect x="84" y="128" width="28" height="28" fill="var(--nostril)" />
+  <rect x="144" y="128" width="28" height="28" fill="var(--nostril)" />
+  <rect x="32" y="200" width="192" height="76" fill="var(--outline)" />
+  <rect x="40" y="208" width="176" height="60" fill="var(--pig)" />
+  <rect x="32" y="264" width="64" height="48" fill="var(--outline)" />
+  <rect x="160" y="264" width="64" height="48" fill="var(--outline)" />
+  <rect x="40" y="264" width="48" height="40" fill="var(--pig)" />
+  <rect x="168" y="264" width="48" height="40" fill="var(--pig)" />
+  <rect x="40" y="288" width="48" height="16" fill="var(--hoof)" />
+  <rect x="168" y="288" width="48" height="16" fill="var(--hoof)" />
+</svg>
