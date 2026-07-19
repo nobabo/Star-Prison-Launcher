@@ -40,7 +40,7 @@ function positiveInteger(value, fallback){
 function publicAttachmentUrl(message){
     const attachment = message.attachments?.find(item => {
         const contentType = item.content_type || ''
-        return contentType.startsWith('image/') || /\.(png|jpe?g|webp|gif)$/i.test(item.url || '')
+        return contentType.startsWith('image/') || /.(png|jpe?g|webp|gif)$/i.test(item.url || '')
     })
 
     return attachment?.url
@@ -301,3 +301,4 @@ export default {
         return jsonResponse({ error: 'Not found.' }, { status: 404 }, env, request)
     }
 }
+
