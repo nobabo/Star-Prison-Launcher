@@ -4,7 +4,7 @@
 
 별도소 런처는 별도소 Minecraft 서버 접속을 위해 제작된 Windows-first Tauri v2 런처입니다. Microsoft 계정 로그인, Java 21 런타임 설치, Fabric/Minecraft 실행 환경 구성, 서버 파일 동기화, 게임 실행까지 한 앱에서 처리합니다.
 
-이 문서는 플레이어, 서버 운영자, 배포 담당자, 개발자가 모두 처음 확인할 수 있는 입구 문서입니다. 더 자세한 명령어와 Rust 구조 설명은 `.docs` 문서를 함께 봐 주세요.
+이 문서는 플레이어, 서버 운영자, 배포 담당자, 개발자가 모두 처음 확인할 수 있는 입구 문서입니다.
 
 ## 빠른 시작
 
@@ -30,8 +30,6 @@ WSL에서 Windows Node/Rust 경로를 자동으로 붙여 실행하려면:
 ```bash
 ./run.sh
 ```
-
-전체 명령어 목록은 [.docs/commands.md](.docs/commands.md)를 확인하세요.
 
 ## 주요 기능
 
@@ -120,13 +118,6 @@ Windows Rust 검증:
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 cargo check --locked --manifest-path src-tauri/Cargo.toml
 ```
-
-## 문서
-
-- [.docs/commands.md](.docs/commands.md): 명령어 상세 설명
-- [.docs/rust_source_guide.md](.docs/rust_source_guide.md): Rust/Tauri 백엔드 구조
-- [.docs/CHANGELOG.md](.docs/CHANGELOG.md): 변경 이력
-- [.docs/AGENTS.md](.docs/AGENTS.md): 프로젝트 작업 규칙과 구현 상태
 
 ## 문제 해결
 

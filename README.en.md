@@ -4,7 +4,7 @@ English | [한국어](README.md)
 
 StarPrison Launcher is a Windows-first Tauri v2 launcher for the StarPrison Minecraft server. It handles Microsoft account sign-in, Java 21 runtime setup, Fabric/Minecraft installation, server file synchronization, and game launch from one desktop app.
 
-This README is the entry point for players, server operators, release maintainers, and developers. See `.docs` for deeper command and Rust architecture references.
+This README is the entry point for players, server operators, release maintainers, and developers.
 
 ## Quick Start
 
@@ -30,8 +30,6 @@ From WSL, use the helper script to prepend Windows Node/Rust paths:
 ```bash
 ./run.sh
 ```
-
-See [.docs/commands.en.md](.docs/commands.en.md) for the full command reference.
 
 ## Features
 
@@ -120,13 +118,6 @@ Windows Rust checks:
 cargo fmt --check --manifest-path src-tauri/Cargo.toml
 cargo check --locked --manifest-path src-tauri/Cargo.toml
 ```
-
-## Docs
-
-- [.docs/commands.en.md](.docs/commands.en.md): command reference
-- [.docs/rust_source_guide.md](.docs/rust_source_guide.md): Rust/Tauri backend guide
-- [.docs/CHANGELOG.md](.docs/CHANGELOG.md): changelog
-- [.docs/AGENTS.md](.docs/AGENTS.md): project working rules and implementation state
 
 ## Troubleshooting
 

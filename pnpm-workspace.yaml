@@ -12,6 +12,5 @@ supportedArchitectures:
     - glibc
 packages:
   - '.'
-  - 'apps/*'
 allowBuilds:
   esbuild: true
