@@ -22,16 +22,19 @@ const ARCHIVES = [
     archiveKey: "mods",
     sourceDir: path.join(FILES_DIR, "mods"),
     sourceArchive: path.join(FILES_DIR, "mods.zip"),
+    rootPrefix: "mods",
   },
   {
     archiveKey: "config",
     sourceDir: path.join(FILES_DIR, "config"),
     sourceArchive: path.join(FILES_DIR, "config.zip"),
+    rootPrefix: "config",
   },
   {
     archiveKey: "shaderpacks",
     sourceDir: path.join(FILES_DIR, "shaders"),
     sourceArchive: path.join(FILES_DIR, "shaders.zip"),
+    rootPrefix: "shaders",
   },
 ];
 
@@ -96,7 +99,7 @@ function listFiles(rootDir) {
   return result;
 }
 
-function createZip(sourceDir, outputPath) {
+function createZip(sourceDir, outputPath, rootPrefix) {
   if (!fs.existsSync(sourceDir)) {
     fail(`Source directory was not found: ${sourceDir}`);
   }
@@ -120,7 +123,8 @@ function createZip(sourceDir, outputPath) {
   zipfile.outputStream.pipe(outputStream);
 
   for (const filePath of files) {
-    zipfile.addFile(filePath, stableRelativePath(sourceDir, filePath), {
+    const archivePath = path.posix.join(rootPrefix, stableRelativePath(sourceDir, filePath));
+    zipfile.addFile(filePath, archivePath, {
       mtime: FIXED_MTIME,
       mode: 0o100644,
       compressionLevel: 9,
@@ -252,20 +256,33 @@ function updateArchiveMetadata(archive, digest) {
 }
 
 function commitDistribution() {
-  run("git", ["add", "config/distribution.json"]);
+  const gitPrefix = ["-c", `safe.directory=${ROOT_DIR}`];
+  run("git", [...gitPrefix, "add", "config/distribution.json"]);
 
-  const diffResult = spawnSync("git", ["diff", "--cached", "--quiet", "--", "config/distribution.json"], {
-    cwd: ROOT_DIR,
-    windowsHide: false,
-    shell: false,
-  });
+  const diffResult = spawnSync(
+    "git",
+    [...gitPrefix, "diff", "--cached", "--quiet", "--", "config/distribution.json"],
+    {
+      cwd: ROOT_DIR,
+      windowsHide: false,
+      shell: false,
+    },
+  );
 
   if (diffResult.status === 0) {
     console.log("No distribution metadata changes to commit.");
     return;
   }
 
-  run("git", ["commit", "-m", "Update release archive metadata"]);
+  run("git", [
+    ...gitPrefix,
+    "commit",
+    "--only",
+    "-m",
+    "Update release archive metadata",
+    "--",
+    "config/distribution.json",
+  ]);
 }
 
 function sleep(ms) {
@@ -309,9 +326,9 @@ async function syncArchive(distribution, spec) {
   const outputPath = path.join(OUTPUT_DIR, assetName(archive));
   if (fs.existsSync(spec.sourceArchive)) {
     fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.copyFileSync(spec.sourceArchive, outputPath);
+    fs.writeFileSync(outputPath, fs.readFileSync(spec.sourceArchive));
   } else {
-    await createZip(spec.sourceDir, outputPath);
+    await createZip(spec.sourceDir, outputPath, spec.rootPrefix);
   }
 
   const localDigest = digestFile(outputPath);

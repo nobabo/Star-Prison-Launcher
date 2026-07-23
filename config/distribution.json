@@ -21,23 +21,23 @@
         "mods": {
           "version": "1.0.0",
           "fileName": "mods.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=c7817e422e787f393ef4facd19aeadb40029d33efe89c39bac0f6fa852200e4e",
-          "size": 49398406,
-          "sha256": "c7817e422e787f393ef4facd19aeadb40029d33efe89c39bac0f6fa852200e4e"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=29fa0e250358a35c9ba6e18ccdc5995b87b3add9ccdec7a7faebd4c270ac0746",
+          "size": 49369885,
+          "sha256": "29fa0e250358a35c9ba6e18ccdc5995b87b3add9ccdec7a7faebd4c270ac0746"
         },
         "config": {
           "version": "1.0.0",
           "fileName": "config.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=988b4efb322e4b60534f5c6ef0dfbb282d53b27a8d17c8d6e877412209468501",
-          "size": 15977,
-          "sha256": "988b4efb322e4b60534f5c6ef0dfbb282d53b27a8d17c8d6e877412209468501"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=aed9c044c201bb026edc5e2700f2059fa784b04d8751545b630931d908d46262",
+          "size": 15954,
+          "sha256": "aed9c044c201bb026edc5e2700f2059fa784b04d8751545b630931d908d46262"
         },
         "shaderpacks": {
           "version": "1.0.0",
           "fileName": "shaders.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/shaders.zip?sha=0dfc554ea31c2baa48a60795178b802b6275b4b9529fbb80b4d276340b0804c2",
-          "size": 8558290,
-          "sha256": "0dfc554ea31c2baa48a60795178b802b6275b4b9529fbb80b4d276340b0804c2"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/shaders.zip?sha=cd20e6a6f8bf868895c60b46966b40349efff279777c82c40c30e06da49c107d",
+          "size": 5803882,
+          "sha256": "cd20e6a6f8bf868895c60b46966b40349efff279777c82c40c30e06da49c107d"
         }
       },
       "modpackManifest": {
