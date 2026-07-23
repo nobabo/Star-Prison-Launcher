@@ -77,7 +77,7 @@
     "backgroundForChatOnly": "true",
     "hideServerAddress": "false",
     "advancedItemTooltips": "false",
-    "pauseOnLostFocus": "true",
+    "pauseOnLostFocus": "false",
     "overrideWidth": "0",
     "overrideHeight": "0",
     "chatHeightFocused": "1.0",
