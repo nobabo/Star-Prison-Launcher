@@ -150,25 +150,14 @@ if ($null -ne $process) { '1' }
 }
 
 pub(crate) fn existing_game_lock_is_active(lock_path: &Path) -> bool {
-    if let Some((launcher_process_id, minecraft_process_id)) = game_lock_process_ids(lock_path) {
-        for process_id in [minecraft_process_id, launcher_process_id]
-            .into_iter()
-            .flatten()
-        {
-            match process_id_is_running(process_id) {
-                Some(true) | None => return true,
-                Some(false) => {}
-            }
-        }
-
+    let Some((launcher_process_id, _minecraft_process_id)) = game_lock_process_ids(lock_path) else {
         return false;
-    }
+    };
 
-    match minecraft_process_is_running() {
-        Some(true) => true,
-        None => stale_game_lock_age_ms(lock_path).is_none(),
-        Some(false) => false,
-    }
+    // 실행 잠금은 런처 생명주기에만 귀속한다. 런처가 종료됐다면 그 런처가
+    // 시작한 Minecraft가 아직 살아 있어도 다음 런처 실행을 막지 않는다.
+    launcher_process_id
+        .is_some_and(|process_id| process_id_is_running(process_id).unwrap_or(true))
 }
 
 pub(crate) fn write_game_lock(
