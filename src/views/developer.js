@@ -4,8 +4,8 @@ import { viewHeader } from '../components/terminal.js'
 const DEVELOPER_CREDITS = [
     ['책임', '정곰'],
     ['개발', '정곰, 코코넛, 노밥, 오뎅'],
-    ['기획', '노밥, 빡빡이, 오뎅, 디버그'],
-    ['디자인', '빡빡이, 디버그, 오뎅']
+    ['기획', '노밥, 쏠끼리, 오뎅, 디버그'],
+    ['디자인', '쏠끼리, 디버그, 오뎅']
 ]
 
 function detailItem(label, value){

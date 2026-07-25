@@ -20,7 +20,7 @@
     "prioritizeChunkUpdates": "1",
     "fullscreen": "false",
     "gamma": "1.0",
-    "guiScale": "2",
+    "guiScale": "3",
     "maxAnisotropyBit": "1",
     "textureFiltering": "1",
     "maxFps": "260",
