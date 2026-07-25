@@ -93,11 +93,11 @@ function listFiles(directory) {
 }
 
 function selectedSource(spec) {
-  if (fs.existsSync(spec.archive)) {
-    return { files: [spec.archive], root: FILES_DIR };
-  }
   if (fs.existsSync(spec.directory)) {
     return { files: listFiles(spec.directory), root: spec.directory };
+  }
+  if (fs.existsSync(spec.archive)) {
+    return { files: [spec.archive], root: FILES_DIR };
   }
   fail(`${spec.name} source was not found: ${spec.archive} or ${spec.directory}`);
 }

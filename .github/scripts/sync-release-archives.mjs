@@ -324,12 +324,8 @@ async function syncArchive(distribution, spec) {
   }
 
   const outputPath = path.join(OUTPUT_DIR, assetName(archive));
-  if (fs.existsSync(spec.sourceArchive)) {
-    fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-    fs.writeFileSync(outputPath, fs.readFileSync(spec.sourceArchive));
-  } else {
-    await createZip(spec.sourceDir, outputPath, spec.rootPrefix);
-  }
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, fs.readFileSync(spec.sourceArchive));
 
   const localDigest = digestFile(outputPath);
   let remoteDigest = null;
@@ -359,6 +355,12 @@ async function syncArchive(distribution, spec) {
   const metadataChanged = updateArchiveMetadata(archive, localDigest);
   console.log(`${spec.archiveKey}: ${localDigest.size} bytes, ${localDigest.sha256}`);
   return metadataChanged;
+}
+
+for (const spec of ARCHIVES) {
+  await createZip(spec.sourceDir, spec.sourceArchive, spec.rootPrefix);
+  const digest = digestFile(spec.sourceArchive);
+  console.log(`Prepared ${path.relative(ROOT_DIR, spec.sourceArchive)}: ${digest.size} bytes, ${digest.sha256}`);
 }
 
 const distribution = readDistribution();
