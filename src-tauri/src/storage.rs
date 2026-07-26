@@ -158,7 +158,8 @@ pub(crate) fn existing_game_lock_is_active(lock_path: &Path) -> bool {
     if launcher_process_id
         .is_some_and(|process_id| process_id_is_running(process_id).unwrap_or(false))
     {
-        return true;
+        return minecraft_process_id
+            .is_none_or(|process_id| process_id_is_running(process_id).unwrap_or(false));
     }
 
     // 런처를 먼저 닫았더라도 실제 Minecraft가 살아 있을 때만 잠금을
@@ -1053,5 +1054,22 @@ mod user_config_migration_tests {
         assert_eq!(migrated["schemaVersion"], 2);
         assert_eq!(migrated["options"]["lang"], "ko_kr");
         assert_eq!(migrated["options"]["renderDistance"], "24");
+    }
+
+    #[test]
+    fn active_launcher_does_not_keep_lock_after_minecraft_exits() {
+        let path = std::env::temp_dir().join(format!(
+            "star-prison-ended-minecraft-{}-{}.lock",
+            std::process::id(),
+            now_ms()
+        ));
+        let lock = json!({
+            "launcherProcessId": std::process::id(),
+            "minecraftProcessId": u32::MAX
+        });
+        fs::write(&path, serde_json::to_vec(&lock).unwrap()).unwrap();
+
+        assert!(!existing_game_lock_is_active(&path));
+        fs::remove_file(path).unwrap();
     }
 }
