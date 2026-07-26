@@ -9,7 +9,6 @@ pub(crate) const AUTH_HTTP_REQUEST_TIMEOUT_SECONDS: u64 = 30;
 pub(crate) const DEFAULT_MINECRAFT_TOKEN_EXPIRES_IN_SECONDS: i64 = 24 * 60 * 60;
 pub(crate) static AUTH_PENDING: AtomicBool = AtomicBool::new(false);
 pub(crate) static LAUNCH_PENDING: AtomicBool = AtomicBool::new(false);
-pub(crate) static GAME_RUNNING: AtomicBool = AtomicBool::new(false);
 pub(crate) static GAME_PROCESS_ID: AtomicU32 = AtomicU32::new(0);
 pub(crate) static GAME_TERMINATION_REQUESTED: AtomicBool = AtomicBool::new(false);
 pub(crate) static APP_CONFIG_MIGRATION_LOCK: Mutex<()> = Mutex::new(());

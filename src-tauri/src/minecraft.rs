@@ -501,19 +501,6 @@ pub(crate) fn launch_minecraft(app: &tauri::AppHandle) -> Result<Value, String> 
     let process_id = child.id();
     let log_readers = capture_filtered_minecraft_logs(&mut child, process_log_file);
 
-    if let Err(lock_error) = update_game_lock_process_id(process_id) {
-        let termination_error = terminate_process_tree(process_id).err();
-        let _ = child.wait();
-        return Err(match termination_error {
-            Some(termination_error) => format!(
-                "게임 실행 잠금에 PID를 기록하지 못했고 시작된 프로세스 종료도 실패했습니다: {lock_error}; {termination_error}"
-            ),
-            None => format!(
-                "게임 실행 잠금에 PID를 기록하지 못해 시작된 프로세스를 종료했습니다: {lock_error}"
-            ),
-        });
-    }
-
     GAME_PROCESS_ID.store(process_id, Ordering::SeqCst);
     GAME_TERMINATION_REQUESTED.store(false, Ordering::SeqCst);
     minimize_launcher_window(app);

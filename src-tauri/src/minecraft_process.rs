@@ -87,7 +87,6 @@ pub(crate) fn monitor_game_process(
         }
         let termination_requested = GAME_TERMINATION_REQUESTED.swap(false, Ordering::SeqCst);
         GAME_PROCESS_ID.store(0, Ordering::SeqCst);
-        release_game_lock();
         focus_launcher_window(&app);
 
         let payload = match wait_result {

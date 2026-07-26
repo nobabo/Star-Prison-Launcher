@@ -30,7 +30,7 @@ zip = { version = "8", default-features = false, features = ["deflate-flate2-zli
 [target.'cfg(windows)'.dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-opener = "2"
-windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_System_SystemInformation", "Win32_System_Threading"] }
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_Security_Cryptography", "Win32_System_SystemInformation"] }
 
 [target.'cfg(windows)'.build-dependencies]
 tauri-build = { version = "2", features = [] }

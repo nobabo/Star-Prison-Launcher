@@ -517,38 +517,8 @@ pub(crate) fn launch_blocking(app: tauri::AppHandle) -> Result<Value, CommandErr
         }));
     }
 
-    match try_acquire_game_lock() {
-        Ok(true) => {}
-        Ok(false) => {
-            LAUNCH_PENDING.store(false, Ordering::SeqCst);
-            return Ok(json!({
-                "ok": false,
-                "mode": "blocked",
-                "message": "이미 Minecraft 실행이 진행 중입니다. 실행 중인 게임을 종료한 뒤 다시 시도해 주세요."
-            }));
-        }
-        Err(error) => {
-            LAUNCH_PENDING.store(false, Ordering::SeqCst);
-            return Ok(json!({
-                "ok": false,
-                "mode": "failed",
-                "message": "Minecraft 실행 준비를 시작하지 못했습니다.",
-                "errorDetail": error
-            }));
-        }
-    }
-
     let result = launch_minecraft(&app);
     LAUNCH_PENDING.store(false, Ordering::SeqCst);
-
-    let should_release_lock = result
-        .as_ref()
-        .map(|value| value.get("mode").and_then(Value::as_str) != Some("launched"))
-        .unwrap_or(true);
-
-    if should_release_lock {
-        release_game_lock();
-    }
 
     match result {
         Ok(result) => Ok(result),
