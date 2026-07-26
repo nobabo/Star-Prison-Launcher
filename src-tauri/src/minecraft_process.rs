@@ -13,7 +13,7 @@ impl MinecraftLogFilter {
 
     fn should_include(&mut self, line: &str) -> bool {
         if let Some(level) = minecraft_log_level(line) {
-            self.include_current_entry = matches!(level, "WARN" | "ERROR");
+            self.include_current_entry = level == "ERROR";
         }
 
         self.include_current_entry
@@ -120,7 +120,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn minecraft_log_filter_keeps_warn_error_entries_and_continuations() {
+    fn minecraft_log_filter_keeps_error_entries_and_continuations() {
         let mut filter = MinecraftLogFilter::new();
         let lines = [
             "[17:32:35] [main/INFO]: Loading Minecraft\n",
@@ -142,8 +142,6 @@ mod tests {
         assert_eq!(
             included,
             vec![
-                "[17:32:36] [main/WARN]: Optional dependency is missing\n",
-                "\tdependency detail\n",
                 "[17:32:37] [Render thread/ERROR]: Renderer failed\n",
                 "java.lang.IllegalStateException: broken\n",
                 "\tat example.Main.run(Main.java:1)\n",

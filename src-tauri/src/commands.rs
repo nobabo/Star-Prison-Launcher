@@ -240,12 +240,10 @@ pub(crate) fn managed_minecraft_profile_dir() -> Result<PathBuf, String> {
 }
 
 pub(crate) fn managed_directory_path(kind: &str) -> Result<PathBuf, String> {
-    let profile_dir = managed_minecraft_profile_dir()?;
-
     match kind {
-        "profile" => Ok(profile_dir),
-        "logs" => Ok(profile_dir.join("logs")),
-        "screenshots" => Ok(profile_dir.join("screenshots")),
+        "profile" => managed_minecraft_profile_dir(),
+        "logs" => Ok(launcher_logs_directory_path()),
+        "screenshots" => Ok(managed_minecraft_profile_dir()?.join("screenshots")),
         _ => Err("알 수 없는 폴더 종류입니다.".to_string()),
     }
 }

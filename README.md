@@ -58,7 +58,7 @@ Windows에서 런처 데이터 루트는 기본적으로 다음 경로입니다.
 - `install-state.json`: 런처 설치/실행 상태 기록
 - `config/`: 첫 실행 시 seed되는 앱/서버 설정, GitHub 배포 manifest 캐시와 release archive 상태 파일
 - `profile/`: 실제 Minecraft 프로필 루트
-- `profile/logs/`: Minecraft 로그
+- `logs/`: 런처가 수집한 Minecraft 프로세스 로그
 - `profile/screenshots/`: Minecraft 스크린샷
 - `data/runtime/java-21/`: 관리형 Java 21 런타임
 - `data/downloads/`, `data/staged/`, `data/runtime/staged/`: 다운로드/설치 중 임시 캐시
@@ -124,5 +124,5 @@ cargo check --locked --manifest-path src-tauri/Cargo.toml
 - 설치 파일 빌드가 실패하고 기존 exe를 지울 수 없다면 실행 중인 런처를 먼저 종료하세요.
 - 디스크 공간 오류가 나면 `src-tauri/target` 정리 또는 `cargo clean`을 검토하세요.
 - WSL에서 Tauri/Rust 검증이 Linux 의존성으로 실패하면 Windows Cargo 경로에서 다시 확인하세요.
-- 게임이 실행 직후 종료되면 설정 탭의 `로그` 버튼으로 `profile/logs`를 열고 최신 Minecraft 로그를 확인하세요.
+- 게임이 실행 직후 종료되면 설정 탭의 `로그` 버튼으로 런처의 `logs` 폴더를 열고 최신 Minecraft 프로세스 로그를 확인하세요.
 - 하드 크래시는 `profile/crash-reports`를 우선 확인하세요.

@@ -110,7 +110,7 @@ pub(crate) fn launcher_storage_relative_path(path: &Path) -> Option<String> {
 }
 
 pub(crate) fn minecraft_process_log_path() -> Result<PathBuf, String> {
-    let logs_directory = storage_root_path().join("logs");
+    let logs_directory = launcher_logs_directory_path();
     fs::create_dir_all(&logs_directory).map_err(|error| {
         io_error(
             "Minecraft 프로세스 로그 폴더를 만들지 못했습니다",

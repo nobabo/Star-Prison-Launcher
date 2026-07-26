@@ -25,6 +25,10 @@ pub(crate) fn storage_root_path() -> PathBuf {
         .join(STORAGE_ROOT_DIR_NAME)
 }
 
+pub(crate) fn launcher_logs_directory_path() -> PathBuf {
+    storage_root_path().join("logs")
+}
+
 pub(crate) fn local_webview_data_directory() -> Result<PathBuf, String> {
     let local_data_root = std::env::var("LOCALAPPDATA")
         .ok()

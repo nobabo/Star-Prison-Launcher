@@ -58,7 +58,7 @@ Important entries:
 - `install-state.json`: launcher install/run state
 - `config/`: first-run seeded app/server config, the GitHub distribution manifest cache, and release archive state files
 - `profile/`: actual Minecraft profile root
-- `profile/logs/`: Minecraft logs
+- `logs/`: Minecraft process logs collected by the launcher
 - `profile/screenshots/`: Minecraft screenshots
 - `data/runtime/java-21/`: managed Java 21 runtime
 - `data/downloads/`, `data/staged/`, `data/runtime/staged/`: temporary download/install caches
@@ -124,5 +124,5 @@ cargo check --locked --manifest-path src-tauri/Cargo.toml
 - If installer build fails because an exe cannot be removed, close the running launcher first.
 - If disk space errors occur, clean `src-tauri/target` or consider `cargo clean`.
 - If WSL Tauri/Rust checks fail because of Linux dependencies, verify again with Windows Cargo.
-- If the game exits immediately, open `로그` from settings and inspect the latest Minecraft log in `profile/logs`.
+- If the game exits immediately, open `로그` from settings and inspect the latest Minecraft process log in the launcher's `logs` folder.
 - For hard crashes, check `profile/crash-reports` first.
