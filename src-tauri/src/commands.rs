@@ -59,30 +59,65 @@ pub(crate) async fn sign_in(app: tauri::AppHandle) -> Result<Value, CommandError
     }
 }
 
-#[tauri::command]
-pub(crate) fn sign_out() -> Result<Value, CommandError> {
-    let _mutation_guard = lock_user_config_mutation().map_err(command_error)?;
-    let mut user_config = load_or_create_user_config().map_err(command_error)?;
-    let previous = user_config.clone();
-
+fn remove_auth_account(
+    user_config: &mut Value,
+    requested_profile_id: Option<&str>,
+) -> Result<(), String> {
     let active_profile_id = user_config
         .get("authSession")
         .and_then(Value::as_object)
         .and_then(|session| session.get("profileId"))
         .and_then(Value::as_str)
         .map(str::to_string);
+    let requested_profile_id = requested_profile_id
+        .map(str::trim)
+        .filter(|profile_id| !profile_id.is_empty())
+        .map(str::to_string);
+    let target_profile_id = requested_profile_id
+        .as_deref()
+        .or(active_profile_id.as_deref());
 
-    if let Some(config) = user_config.as_object_mut() {
-        if let Some(accounts) = config.get_mut("authAccounts").and_then(Value::as_array_mut) {
-            accounts.retain(|account| {
-                account.get("profileId").and_then(Value::as_str) != active_profile_id.as_deref()
-            });
+    let Some(config) = user_config.as_object_mut() else {
+        return Err("계정 설정을 읽지 못했습니다.".to_string());
+    };
+
+    let Some(target_profile_id) = target_profile_id else {
+        config.insert("authSession".to_string(), Value::Null);
+        return Ok(());
+    };
+
+    let removing_active_account = active_profile_id.as_deref() == Some(target_profile_id);
+
+    if let Some(accounts) = config.get_mut("authAccounts").and_then(Value::as_array_mut) {
+        let account_count = accounts.len();
+        accounts.retain(|account| {
+            account.get("profileId").and_then(Value::as_str) != Some(target_profile_id)
+        });
+
+        if requested_profile_id.is_some() && accounts.len() == account_count {
+            return Err("저장된 계정을 찾지 못했습니다.".to_string());
+        }
+
+        if removing_active_account {
             let next_session = accounts.first().cloned().unwrap_or(Value::Null);
             config.insert("authSession".to_string(), next_session);
-        } else {
-            config.insert("authSession".to_string(), Value::Null);
         }
+    } else if removing_active_account {
+        config.insert("authSession".to_string(), Value::Null);
+    } else {
+        return Err("저장된 계정을 찾지 못했습니다.".to_string());
     }
+
+    Ok(())
+}
+
+#[tauri::command]
+pub(crate) fn sign_out(profile_id: Option<String>) -> Result<Value, CommandError> {
+    let _mutation_guard = lock_user_config_mutation().map_err(command_error)?;
+    let mut user_config = load_or_create_user_config().map_err(command_error)?;
+    let previous = user_config.clone();
+
+    remove_auth_account(&mut user_config, profile_id.as_deref()).map_err(command_error)?;
 
     save_user_config_if_changed(&previous, &user_config).map_err(command_error)?;
 
@@ -90,6 +125,60 @@ pub(crate) fn sign_out() -> Result<Value, CommandError> {
         "ok": true,
         "bootstrap": build_bootstrap_payload().map_err(command_error)?
     }))
+}
+
+#[cfg(test)]
+mod account_command_tests {
+    use super::*;
+
+    fn account(profile_id: &str, player_name: &str) -> Value {
+        json!({
+            "profileId": profile_id,
+            "playerName": player_name,
+            "accessToken": format!("token-{profile_id}")
+        })
+    }
+
+    #[test]
+    fn removing_inactive_account_preserves_active_session() {
+        let active = account("profile-a", "Alpha");
+        let mut config = json!({
+            "authSession": active.clone(),
+            "authAccounts": [active.clone(), account("profile-b", "Bravo")]
+        });
+
+        remove_auth_account(&mut config, Some("profile-b")).unwrap();
+
+        assert_eq!(config["authSession"]["profileId"], "profile-a");
+        assert_eq!(config["authAccounts"].as_array().unwrap().len(), 1);
+        assert_eq!(config["authAccounts"][0]["profileId"], "profile-a");
+    }
+
+    #[test]
+    fn removing_active_account_promotes_next_saved_account() {
+        let active = account("profile-a", "Alpha");
+        let mut config = json!({
+            "authSession": active.clone(),
+            "authAccounts": [active, account("profile-b", "Bravo")]
+        });
+
+        remove_auth_account(&mut config, Some("profile-a")).unwrap();
+
+        assert_eq!(config["authSession"]["profileId"], "profile-b");
+        assert_eq!(config["authAccounts"].as_array().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn removing_unknown_account_is_rejected() {
+        let active = account("profile-a", "Alpha");
+        let mut config = json!({
+            "authSession": active.clone(),
+            "authAccounts": [active]
+        });
+
+        assert!(remove_auth_account(&mut config, Some("missing")).is_err());
+        assert_eq!(config["authSession"]["profileId"], "profile-a");
+    }
 }
 
 #[tauri::command]

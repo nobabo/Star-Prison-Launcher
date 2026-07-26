@@ -1,23 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 320" role="img" aria-labelledby="title desc">
   <title id="title">Front-facing baby chicken</title>
-  <desc id="desc">A blocky yellow baby chicken with wide black eyes, a large brown beak, small wings, and two legs.</desc>
+  <desc id="desc">A bright blocky yellow baby chicken with a black outline, wide eyes, a large brown beak, and two legs.</desc>
   <style>
     :root {
-      --feather: #d2bd27;
-      --feather-gold: #d6a900;
-      --chest: #bd7d08;
+      --outline: #0a0909;
+      --feather: #e2cc32;
+      --feather-gold: #e7b900;
+      --feather-light: #ecc018;
+      --chest: #d28d0b;
       --eye: #050505;
-      --beak-light: #8a6941;
-      --beak-dark: #6d4c2c;
-      --leg-light: #795b39;
-      --leg-dark: #6a4b2c;
-      --foot: #24180f;
+      --beak-light: #9a774e;
+      --beak-dark: #7c5835;
+      --leg-light: #8a6946;
+      --leg-dark: #755334;
+      --foot: #4a2f1c;
     }
   </style>
   <g transform="rotate(2 128 160)">
+    <path d="M56 288H120V320H48Z" fill="var(--outline)" />
+    <path d="M144 288H208L216 320H144Z" fill="var(--outline)" />
+    <rect x="56" y="236" width="64" height="76" fill="var(--outline)" />
+    <rect x="144" y="236" width="64" height="76" fill="var(--outline)" />
+    <rect x="16" y="24" width="224" height="228" fill="var(--outline)" />
     <rect x="24" y="32" width="208" height="212" fill="var(--feather)" />
     <rect x="24" y="32" width="56" height="60" fill="var(--feather-gold)" />
-    <rect x="168" y="32" width="64" height="60" fill="#deb000" />
+    <rect x="168" y="32" width="64" height="60" fill="var(--feather-light)" />
     <rect x="24" y="92" width="52" height="56" fill="var(--eye)" />
     <rect x="180" y="92" width="52" height="56" fill="var(--eye)" />
     <rect x="76" y="140" width="52" height="60" fill="var(--beak-light)" />

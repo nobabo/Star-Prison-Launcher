@@ -43,6 +43,8 @@ mod minecraft;
 use minecraft::*;
 mod commands;
 use commands::*;
+mod startup_context;
+use startup_context::*;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -59,9 +61,11 @@ pub fn run() {
                 .ok_or_else(|| io::Error::other("main window configuration is missing"))?;
             let data_directory = local_webview_data_directory().map_err(io::Error::other)?;
 
-            WebviewWindowBuilder::from_config(app.handle(), &window_config)?
+            let main_window = WebviewWindowBuilder::from_config(app.handle(), &window_config)?
                 .data_directory(data_directory)
+                .initialization_script(startup_context_script())
                 .build()?;
+            main_window.show()?;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

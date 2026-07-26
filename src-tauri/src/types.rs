@@ -3,7 +3,6 @@ use crate::*;
 pub(crate) const STORAGE_ROOT_DIR_NAME: &str = "star-prison-launcher";
 pub(crate) const LOCAL_WEBVIEW_DATA_DIR_NAME: &str = "starprison";
 pub(crate) const LEGACY_LOCAL_WEBVIEW_DATA_DIR_NAME: &str = "com.nobabo.starprisonlauncher";
-pub(crate) const STALE_GAME_LOCK_MS: i64 = 12 * 60 * 60 * 1000;
 pub(crate) const AUTH_REFRESH_MARGIN_MS: i64 = 5 * 60 * 1000;
 pub(crate) const AUTH_HTTP_CONNECT_TIMEOUT_SECONDS: u64 = 10;
 pub(crate) const AUTH_HTTP_REQUEST_TIMEOUT_SECONDS: u64 = 30;

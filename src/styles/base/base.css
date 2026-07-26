@@ -59,8 +59,8 @@ body {
     color: var(--text-primary);
     font-family: 'Noto Sans KR', sans-serif;
     background:
-        linear-gradient(180deg, rgb(8 8 12 / 70%), rgb(8 8 12 / 86%)),
-        linear-gradient(90deg, rgb(8 8 12 / 40%), rgb(8 8 12 / 40%)),
+        linear-gradient(180deg, rgb(8 8 12 / 60%), rgb(8 8 12 / 50%)),
+        linear-gradient(90deg, rgb(8 8 12 / 32%), rgb(8 8 12 / 20%)),
         var(--launcher-background-image),
         linear-gradient(180deg, var(--terminal-bg) 0%, #0e0e14 100%);
     background-size: cover, cover, cover, cover;

@@ -15,14 +15,15 @@ const state = createInitialState()
 const PAGE_SCROLL_MULTIPLIER = 5
 const BACKGROUND_PARALLAX_RANGE = 3
 const FALLING_EASTER_EGG_REMOVE_BUFFER_MS = 400
-const ACCOUNT_SWITCHER_EXIT_DURATION_MS = 280
+const ACCOUNT_STACK_DRAG_THRESHOLD_PX = 8
 const FALLING_EASTER_EGG_ASSETS = [
     { src: './assets/chick-face.svg', minSize: 48, maxSize: 64 },
     { src: './assets/pig-face.svg', minSize: 62, maxSize: 82 }
 ]
 let mountedViewName = null
-let accountSwitcherExitTimer = null
-let accountSwitcherClosing = false
+let accountStackDrag = null
+let accountStackSuppressClick = false
+let renderedAccountStackSignature = null
 const launcherController = createLauncherController({
     state,
     render,
@@ -243,11 +244,11 @@ function preloadAccountSkin(){
     image.src = skinUrls.head
 }
 
-function buildAccountSkinImage(playerName, className = 'account-switcher-avatar-image'){
+function buildAccountSkinImage(playerName, className = 'account-stack-avatar-image'){
     const skinUrls = buildMineSkinUrls(playerName)
 
     if(skinUrls == null){
-        return el('span', { className: `${className} account-switcher-avatar-fallback`, text: '?' })
+        return el('span', { className: `${className} account-stack-avatar-fallback`, text: '?' })
     }
 
     return el('img', {
@@ -258,134 +259,193 @@ function buildAccountSkinImage(playerName, className = 'account-switcher-avatar-
             'aria-hidden': 'true',
             loading: 'eager',
             decoding: 'async'
+        },
+        props: {
+            draggable: false
         }
     })
 }
 
-function clearAccountSwitcherExitTimer(){
-    if(accountSwitcherExitTimer != null){
-        window.clearTimeout(accountSwitcherExitTimer)
-        accountSwitcherExitTimer = null
-    }
-}
+function closeAccountContextMenu(){
+    const menu = document.getElementById('account-context-menu')
 
-function finishAccountSwitcherExit(dialog){
-    clearAccountSwitcherExitTimer()
-
-    if(dialog?.open){
-        dialog.close()
-    }
-
-    dialog?.classList.remove('is-visible', 'is-closing')
-    accountSwitcherClosing = false
-}
-
-function closeAccountSwitcher(){
-    const dialog = document.getElementById('account-switcher-dialog')
-
-    if(dialog == null || !dialog.open || accountSwitcherClosing){
+    if(menu == null){
         return
     }
 
-    if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){
-        finishAccountSwitcherExit(dialog)
+    menu.hidden = true
+    menu.removeAttribute('data-account-profile-id')
+    menu.setAttribute('aria-hidden', 'true')
+}
+
+function positionAccountContextMenu(menu, left, top){
+    const boundedLeft = Math.max(8, Math.min(left, window.innerWidth - menu.offsetWidth - 8))
+    const boundedTop = Math.max(8, Math.min(top, window.innerHeight - menu.offsetHeight - 8))
+    menu.style.left = `${boundedLeft}px`
+    menu.style.top = `${boundedTop}px`
+}
+
+function openAccountContextMenu(profileId, clientX, clientY){
+    const menu = document.getElementById('account-context-menu')
+
+    if(menu == null){
         return
     }
 
-    accountSwitcherClosing = true
-    dialog.classList.remove('is-visible')
-    dialog.classList.add('is-closing')
-    accountSwitcherExitTimer = window.setTimeout(() => {
-        if(dialog.classList.contains('is-closing')){
-            finishAccountSwitcherExit(dialog)
-        }
-    }, ACCOUNT_SWITCHER_EXIT_DURATION_MS + 80)
+    menu.dataset.accountProfileId = profileId
+    menu.hidden = false
+    menu.setAttribute('aria-hidden', 'false')
+
+    positionAccountContextMenu(menu, clientX, clientY)
+    menu.querySelector('.account-context-menu__item')?.focus()
 }
 
-function renderAccountSwitcher(){
-    const trigger = document.getElementById('account-switcher-trigger')
-    const triggerAvatar = document.getElementById('account-switcher-trigger-avatar')
-    const list = document.getElementById('account-switcher-list')
-    const addButton = document.getElementById('account-switcher-add')
+function positionAccountStack(stack, left, top){
+    const boundedLeft = Math.max(8, Math.min(left, window.innerWidth - stack.offsetWidth - 8))
+    const boundedTop = Math.max(8, Math.min(top, window.innerHeight - stack.offsetHeight - 8))
+    stack.style.left = `${boundedLeft}px`
+    stack.style.top = `${boundedTop}px`
+    stack.style.right = 'auto'
+    stack.style.transform = 'none'
+}
+
+function startAccountStackDrag(event){
+    const stack = document.getElementById('account-stack')
+
+    if(stack == null || event.button !== 0 || event.isPrimary === false){
+        return
+    }
+
+    const rect = stack.getBoundingClientRect()
+    const captureTarget = event.target?.setPointerCapture != null ? event.target : stack
+    accountStackSuppressClick = false
+    accountStackDrag = {
+        pointerId: event.pointerId,
+        captureTarget,
+        startX: event.clientX,
+        startY: event.clientY,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top,
+        moved: false
+    }
+    stack.classList.add('is-dragging')
+    captureTarget.setPointerCapture?.(event.pointerId)
+}
+
+function moveAccountStack(event){
+    const stack = document.getElementById('account-stack')
+
+    if(stack == null || accountStackDrag?.pointerId !== event.pointerId){
+        return
+    }
+
+    const drag = accountStackDrag
+    if(!drag.moved && Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY) < ACCOUNT_STACK_DRAG_THRESHOLD_PX){
+        return
+    }
+
+    drag.moved = true
+    accountStackSuppressClick = true
+    event.preventDefault()
+    positionAccountStack(stack, event.clientX - drag.offsetX, event.clientY - drag.offsetY)
+}
+
+function endAccountStackDrag(event){
+    const stack = document.getElementById('account-stack')
+
+    if(stack == null || accountStackDrag?.pointerId !== event.pointerId){
+        return
+    }
+
+    const captureTarget = accountStackDrag.captureTarget
+    if(captureTarget?.hasPointerCapture?.(event.pointerId)){
+        captureTarget.releasePointerCapture(event.pointerId)
+    }
+    stack.classList.remove('is-dragging')
+    accountStackDrag = null
+}
+
+function renderAccountStack(){
+    const stack = document.getElementById('account-stack')
     const auth = state.bootstrap?.authSummary
     const signedIn = auth?.signedIn === true
 
-    if(trigger == null || triggerAvatar == null || list == null || addButton == null){
+    if(stack == null){
         return
     }
 
-    trigger.hidden = !signedIn
-
-    if(!signedIn){
-        closeAccountSwitcher()
-        list.replaceChildren()
-        return
-    }
-
-    trigger.setAttribute('aria-label', `${auth.playerName} 계정 선택`)
-    trigger.setAttribute('title', `${auth.playerName} · 계정 선택`)
-    triggerAvatar.replaceChildren(buildAccountSkinImage(auth.playerName))
-
-    const savedAccounts = Array.isArray(state.bootstrap.authAccounts)
+    const savedAccounts = Array.isArray(state.bootstrap?.authAccounts)
         ? state.bootstrap.authAccounts
         : []
-    const accounts = savedAccounts.length > 0 ? savedAccounts : [auth]
-    const actionPending = state.pendingAction != null
+    const accounts = [...savedAccounts]
 
-    list.replaceChildren(...accounts.map(account => {
+    if(signedIn && !accounts.some(account => account.profileId === auth.profileId)){
+        accounts.unshift(auth)
+    }
+
+    accounts.sort((left, right) => {
+        if(left.profileId === auth?.profileId){
+            return -1
+        }
+        if(right.profileId === auth?.profileId){
+            return 1
+        }
+        return 0
+    })
+
+    const actionPending = state.pendingAction != null
+    const renderSignature = JSON.stringify({
+        activeProfileId: auth?.profileId ?? null,
+        actionPending,
+        accounts: accounts.map(account => [account.profileId, account.playerName])
+    })
+
+    if(renderedAccountStackSignature === renderSignature && stack.childElementCount > 0){
+        return
+    }
+
+    const addButton = el('button', {
+        className: 'account-stack-add',
+        attrs: {
+            type: 'button',
+            'aria-label': 'Microsoft 계정 추가',
+            title: 'Microsoft 계정 추가',
+            disabled: actionPending ? '' : null
+        },
+        dataset: { accountAdd: '' }
+    }, el('span', { className: 'account-stack-add__icon', attrs: { 'aria-hidden': 'true' } }))
+    const profileItems = accounts.map(account => {
         const isActive = account.profileId === auth.profileId
-        const option = el('button', {
-            className: `account-switcher-option${isActive ? ' account-switcher-option--active' : ''}`,
+        const accountLabel = isActive
+            ? `${account.playerName} · 현재 계정`
+            : `${account.playerName} 계정으로 전환`
+        const profileButton = el('button', {
+            className: `account-stack-profile-button${isActive ? ' account-stack-profile-button--active' : ''}`,
             attrs: {
                 type: 'button',
-                'aria-label': `${account.playerName} 계정 선택`,
-                title: `${account.playerName} 계정 선택`,
+                'aria-label': accountLabel,
+                title: accountLabel,
                 disabled: actionPending ? '' : null
             },
             dataset: {
                 accountProfileId: account.profileId
             }
         },
-            el('span', { className: 'account-switcher-option__avatar', attrs: { 'aria-hidden': 'true' } },
+            el('span', { className: 'account-stack-profile-avatar', attrs: { 'aria-hidden': 'true' } },
                 buildAccountSkinImage(account.playerName)
             )
         )
+        return el('div', {
+            className: `account-stack-profile${isActive ? ' account-stack-profile--active' : ''}`
+        }, profileButton)
+    })
+    const profileList = el('div', { className: 'account-stack-profiles' }, ...profileItems)
 
-        return el('article', {
-            className: 'account-switcher-item',
-            dataset: {
-                accountProfileId: account.profileId
-            }
-        },
-            option,
-            el('h3', {
-                className: `account-switcher-name${isActive ? ' account-switcher-name--active' : ''}`,
-                text: account.playerName
-            })
-        )
-    }))
-    addButton.disabled = actionPending
-}
-
-function openAccountSwitcher(){
-    const dialog = document.getElementById('account-switcher-dialog')
-
-    if(dialog == null || state.bootstrap?.authSummary?.signedIn !== true){
-        return
-    }
-
-    renderAccountSwitcher()
-    if(!dialog.open){
-        clearAccountSwitcherExitTimer()
-        accountSwitcherClosing = false
-        dialog.classList.remove('is-visible', 'is-closing')
-        dialog.showModal()
-        window.requestAnimationFrame(() => {
-            if(dialog.open){
-                dialog.classList.add('is-visible')
-            }
-        })
-    }
+    stack.classList.toggle('account-stack--empty', accounts.length === 0)
+    stack.setAttribute('aria-label', accounts.length === 0 ? 'Minecraft 계정 추가' : `Minecraft 계정 ${accounts.length}개`)
+    closeAccountContextMenu()
+    stack.replaceChildren(addButton, profileList)
+    renderedAccountStackSignature = renderSignature
 }
 
 function syncElementState(current, next){
@@ -455,7 +515,7 @@ function render(){
 
     renderStatusCard()
     renderWindowControls()
-    renderAccountSwitcher()
+    renderAccountStack()
 
     const nextView = renderer(state)
 
@@ -582,7 +642,7 @@ async function handleSignIn({ launchAfterSignIn = false } = {}){
 
     state.pendingAction = 'sign-in'
     launcherController.updateActionButtons()
-    renderAccountSwitcher()
+    renderAccountStack()
 
     try {
         const result = await window.starPrisonLauncher.signIn()
@@ -619,7 +679,7 @@ async function handleSignIn({ launchAfterSignIn = false } = {}){
     } finally {
         state.pendingAction = null
         launcherController.updateActionButtons()
-        renderAccountSwitcher()
+        renderAccountStack()
     }
 }
 
@@ -631,36 +691,53 @@ async function handleSelectAccount(profileId){
     }
 
     if(normalizedProfileId === state.bootstrap?.authSummary?.profileId){
-        closeAccountSwitcher()
         return
     }
 
     state.pendingAction = 'select-account'
-    renderAccountSwitcher()
+    renderAccountStack()
 
     try {
         const result = await window.starPrisonLauncher.selectAccount(normalizedProfileId)
         await refreshBootstrap(result.bootstrap)
-        closeAccountSwitcher()
     } catch (error) {
-        closeAccountSwitcher()
         showOverlay({
             title: '계정 선택 실패',
             body: overlayParagraph(error.message)
         })
     } finally {
         state.pendingAction = null
-        renderAccountSwitcher()
+        renderAccountStack()
     }
 }
 
-async function handleSignOut(){
-    const result = await window.starPrisonLauncher.signOut()
-    await refreshBootstrap(result.bootstrap)
-    showOverlay({
-        title: '로그아웃',
-        body: overlayParagraph('로그아웃이 완료되었습니다.')
-    })
+async function handleSignOut(profileId = null){
+    if(state.pendingAction != null){
+        return
+    }
+
+    const account = state.bootstrap?.authAccounts?.find(savedAccount => savedAccount.profileId === profileId)
+    const playerName = account?.playerName ?? state.bootstrap?.authSummary?.playerName
+    closeAccountContextMenu()
+    state.pendingAction = 'sign-out'
+    renderAccountStack()
+
+    try {
+        const result = await window.starPrisonLauncher.signOut(profileId)
+        await refreshBootstrap(result.bootstrap)
+        showOverlay({
+            title: '로그아웃',
+            body: overlayParagraph(`${playerName ?? '계정'} 로그아웃이 완료되었습니다.`)
+        })
+    } catch (error) {
+        showOverlay({
+            title: '로그아웃 실패',
+            body: overlayParagraph(error.message)
+        })
+    } finally {
+        state.pendingAction = null
+        renderAccountStack()
+    }
 }
 
 function navigateToLanding(){
@@ -744,38 +821,72 @@ async function handleDelegatedViewClick(event){
 
 function bindPersistentActions(){
     const viewHost = document.getElementById('view-host')
-    const accountSwitcherDialog = document.getElementById('account-switcher-dialog')
+    const accountStack = document.getElementById('account-stack')
+    const accountContextMenu = document.getElementById('account-context-menu')
 
     bindLaunchReadyEasterEggFall()
-    document.getElementById('account-switcher-trigger').onclick = openAccountSwitcher
-    document.getElementById('account-switcher-close').onclick = closeAccountSwitcher
-    document.getElementById('account-switcher-add').onclick = () => {
-        closeAccountSwitcher()
-        void handleSignIn()
-    }
-    document.getElementById('account-switcher-list').addEventListener('click', event => {
-        const option = event.target.closest?.('[data-account-profile-id]')
-
-        if(option != null){
-            void handleSelectAccount(option.dataset.accountProfileId)
-        }
-    })
-    accountSwitcherDialog.addEventListener('cancel', event => {
-        event.preventDefault()
-        closeAccountSwitcher()
-    })
-    accountSwitcherDialog.addEventListener('click', event => {
-        if(event.target === accountSwitcherDialog){
-            closeAccountSwitcher()
-        }
-    })
-    accountSwitcherDialog.addEventListener('transitionend', event => {
-        if(event.target !== accountSwitcherDialog || event.propertyName !== 'opacity'){
+    accountStack.addEventListener('click', event => {
+        if(accountStackSuppressClick){
+            accountStackSuppressClick = false
             return
         }
 
-        if(accountSwitcherDialog.classList.contains('is-closing')){
-            finishAccountSwitcherExit(accountSwitcherDialog)
+        const addButton = event.target.closest?.('[data-account-add]')
+        if(addButton != null){
+            void handleSignIn()
+            return
+        }
+
+        const profileButton = event.target.closest?.('[data-account-profile-id]')
+        if(profileButton != null){
+            if(event.detail >= 2 && profileButton.classList.contains('account-stack-profile-button--active')){
+                event.preventDefault()
+                openAccountContextMenu(profileButton.dataset.accountProfileId, event.clientX, event.clientY)
+                return
+            }
+
+            void handleSelectAccount(profileButton.dataset.accountProfileId)
+        }
+    })
+    accountStack.addEventListener('dblclick', event => {
+        const profileButton = event.target.closest?.('[data-account-profile-id]')
+
+        if(profileButton == null || !profileButton.classList.contains('account-stack-profile-button--active')){
+            return
+        }
+
+        event.preventDefault()
+        openAccountContextMenu(profileButton.dataset.accountProfileId, event.clientX, event.clientY)
+    })
+    accountStack.addEventListener('pointerdown', startAccountStackDrag)
+    window.addEventListener('pointermove', moveAccountStack)
+    window.addEventListener('pointerup', endAccountStackDrag)
+    window.addEventListener('pointercancel', endAccountStackDrag)
+    accountStack.addEventListener('contextmenu', event => {
+        const profileButton = event.target.closest?.('[data-account-profile-id]')
+
+        if(profileButton == null || !profileButton.classList.contains('account-stack-profile-button--active')){
+            return
+        }
+
+        event.preventDefault()
+        openAccountContextMenu(profileButton.dataset.accountProfileId, event.clientX, event.clientY)
+    })
+    accountContextMenu.addEventListener('click', event => {
+        if(event.target.closest?.('#account-context-sign-out') == null){
+            return
+        }
+
+        void handleSignOut(accountContextMenu.dataset.accountProfileId)
+    })
+    document.addEventListener('pointerdown', event => {
+        if(!accountContextMenu.contains(event.target)){
+            closeAccountContextMenu()
+        }
+    })
+    document.addEventListener('keydown', event => {
+        if(event.key === 'Escape'){
+            closeAccountContextMenu()
         }
     })
     viewHost.addEventListener('click', event => {

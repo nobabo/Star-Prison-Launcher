@@ -11,7 +11,7 @@
 - For auth and security changes, keep OAuth2 PKCE token final exchange, log redaction, DPAPI failure recovery with settings preservation and re-login, browser allowlists, and download allowlists as separate concerns.
 - `LauncherAccountBridge` work belongs under `.files/plugins/LauncherAccountBridge`. `LauncherCompanionProvider` is the server DB/API integration point.
 - For Nexo, CustomFishing, and LiteFish work, fish visuals come from Nexo and CustomFishing should use `material: Nexo:<id>`. Keep `item-detection-order` as `Nexo` first, then `CUSTOM_MODEL_DATA`, `VANILLA`, and `PUFFERFISH/TROPICAL_FISH`, with vanilla fish as the last checkpoint.
-- For wiki work, if Notion MCP is unstable, use the downloaded export under `.files/wiki/초안` and local plugin/world data. Do not rewrite whole export HTML unless necessary; replace only the `page-body` content. For fish pages, use image/name/lore blocks instead of tables.
+- For wiki application work, use the sibling `StarPrisonWiki` repository. Keep the launcher workspace independent; for fish content, continue using local plugin and world data as the source of truth.
 
 ## Runtime Log Evidence
 

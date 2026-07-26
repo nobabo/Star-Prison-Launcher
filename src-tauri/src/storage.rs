@@ -1,5 +1,12 @@
 use crate::*;
 
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::{CloseHandle, FILETIME};
+#[cfg(windows)]
+use windows_sys::Win32::System::Threading::{
+    GetProcessTimes, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+};
+
 pub(crate) const EMBEDDED_APP_CONFIG: &str = include_str!("../../config/app.config.json");
 pub(crate) const EMBEDDED_CLIENT_CONFIG: &str = include_str!("../../config/client.config.json");
 pub(crate) const EMBEDDED_DISTRIBUTION_CONFIG: &str =
@@ -63,119 +70,116 @@ pub(crate) fn game_lock_path() -> PathBuf {
     storage_root_path().join("game.lock")
 }
 
-pub(crate) fn stale_game_lock_age_ms(lock_path: &Path) -> Option<i64> {
-    let content = fs::read_to_string(lock_path).ok()?;
-    let created_at = serde_json::from_str::<Value>(&content)
-        .ok()
-        .and_then(|state| state.get("createdAt").and_then(Value::as_i64))
-        .or_else(|| content.trim().parse::<i64>().ok())?;
-    let age_ms = now_ms().saturating_sub(created_at);
-
-    if age_ms >= STALE_GAME_LOCK_MS {
-        Some(age_ms)
-    } else {
-        None
-    }
-}
-
-pub(crate) fn game_lock_process_ids(lock_path: &Path) -> Option<(Option<u32>, Option<u32>)> {
+pub(crate) fn game_lock_process_ids(lock_path: &Path) -> Option<((u32, u64), Option<(u32, u64)>)> {
     let content = fs::read_to_string(lock_path).ok()?;
     let state = serde_json::from_str::<Value>(&content).ok()?;
+    if state.get("schemaVersion").and_then(Value::as_u64) != Some(2) {
+        return None;
+    }
     let launcher_process_id = state
         .get("launcherProcessId")
         .and_then(Value::as_u64)
-        .and_then(|value| u32::try_from(value).ok());
-    let minecraft_process_id = state
-        .get("minecraftProcessId")
-        .and_then(Value::as_u64)
-        .and_then(|value| u32::try_from(value).ok());
-    Some((launcher_process_id, minecraft_process_id))
+        .and_then(|value| u32::try_from(value).ok())?;
+    let launcher_started_at = state
+        .get("launcherProcessStartedAt")
+        .and_then(Value::as_u64)?;
+    let minecraft_process_id = state.get("minecraftProcessId")?;
+    let minecraft_started_at = state.get("minecraftProcessStartedAt")?;
+    let minecraft = if minecraft_process_id.is_null() && minecraft_started_at.is_null() {
+        None
+    } else {
+        Some((
+            minecraft_process_id
+                .as_u64()
+                .and_then(|value| u32::try_from(value).ok())?,
+            minecraft_started_at.as_u64()?,
+        ))
+    };
+    Some(((launcher_process_id, launcher_started_at), minecraft))
 }
 
 #[cfg(windows)]
-pub(crate) fn process_id_is_running(process_id: u32) -> Option<bool> {
-    let script = format!(
-        "if ($null -ne (Get-Process -Id {process_id} -ErrorAction SilentlyContinue)) {{ '1' }}"
-    );
-
-    Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            &script,
-        ])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .map(|output| String::from_utf8_lossy(&output.stdout).trim() == "1")
+pub(crate) fn process_started_at(process_id: u32) -> Option<u64> {
+    unsafe {
+        let process_handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id);
+        if process_handle.is_null() {
+            return None;
+        }
+        let mut creation_time = FILETIME {
+            dwLowDateTime: 0,
+            dwHighDateTime: 0,
+        };
+        let mut exit_time = creation_time;
+        let mut kernel_time = creation_time;
+        let mut user_time = creation_time;
+        let succeeded = GetProcessTimes(
+            process_handle,
+            &mut creation_time,
+            &mut exit_time,
+            &mut kernel_time,
+            &mut user_time,
+        ) != 0;
+        let _ = CloseHandle(process_handle);
+        succeeded.then_some(
+            ((creation_time.dwHighDateTime as u64) << 32) | creation_time.dwLowDateTime as u64,
+        )
+    }
 }
 
-#[cfg(not(windows))]
-pub(crate) fn process_id_is_running(process_id: u32) -> Option<bool> {
-    Command::new("kill")
-        .args(["-0", &process_id.to_string()])
-        .status()
-        .ok()
-        .map(|status| status.success())
+#[cfg(target_os = "linux")]
+pub(crate) fn process_started_at(process_id: u32) -> Option<u64> {
+    let content = fs::read_to_string(format!("/proc/{process_id}/stat")).ok()?;
+    let command_end = content.rfind(')')?;
+    content[command_end + 1..]
+        .split_whitespace()
+        .nth(19)
+        .and_then(|value| value.parse().ok())
 }
 
-#[cfg(windows)]
-pub(crate) fn minecraft_process_is_running() -> Option<bool> {
-    let script = r#"
-$process = Get-CimInstance Win32_Process |
-  Where-Object {
-    ($_.Name -match '(?i)^minecraft.*\.exe$') -or
-    (($_.Name -match '(?i)^javaw?\.exe$') -and ($_.CommandLine -match '(?i)minecraft'))
-  } |
-  Select-Object -First 1
-if ($null -ne $process) { '1' }
-"#;
-
-    Command::new("powershell.exe")
-        .args([
-            "-NoProfile",
-            "-NonInteractive",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            script,
-        ])
-        .output()
-        .ok()
-        .filter(|output| output.status.success())
-        .map(|output| String::from_utf8_lossy(&output.stdout).trim() == "1")
+#[cfg(all(not(windows), not(target_os = "linux")))]
+pub(crate) fn process_started_at(_process_id: u32) -> Option<u64> {
+    None
 }
 
 pub(crate) fn existing_game_lock_is_active(lock_path: &Path) -> bool {
-    let Some((launcher_process_id, minecraft_process_id)) = game_lock_process_ids(lock_path) else {
+    let Some((launcher, minecraft)) = game_lock_process_ids(lock_path) else {
+        // 구형/손상 잠금은 소유권을 입증하지 못하므로 외부 Minecraft를 추측하지 않는다.
         return false;
     };
 
-    // 런처가 살아 있으면 설치/실행 준비 중인 잠금일 수 있으므로 유지한다.
-    if launcher_process_id
-        .is_some_and(|process_id| process_id_is_running(process_id).unwrap_or(false))
-    {
-        return minecraft_process_id
-            .is_none_or(|process_id| process_id_is_running(process_id).unwrap_or(false));
+    // 실행 잠금은 런처 생명주기에만 귀속한다. 런처가 종료됐다면 그 런처가
+    // 시작한 Minecraft가 아직 살아 있어도 다음 런처 실행을 막지 않는다.
+    if process_started_at(launcher.0) != Some(launcher.1) {
+        return false;
     }
 
-    // 런처를 먼저 닫았더라도 실제 Minecraft가 살아 있을 때만 잠금을
-    // 유지한다. 게임이 종료되어 남은 잠금은 다음 실행에서 정리한다.
-    minecraft_process_id
-        .is_some_and(|process_id| process_id_is_running(process_id).unwrap_or(false))
+    // 런처가 살아 있더라도 Minecraft가 이미 종료된 뒤 남은 잠금은 정리한다.
+    // 실행 준비 중에는 Minecraft PID가 아직 없으므로 런처 잠금만 유지한다.
+    minecraft.is_none_or(|process| process_started_at(process.0) == Some(process.1))
 }
 
 pub(crate) fn write_game_lock(
     file: &mut File,
     minecraft_process_id: Option<u32>,
 ) -> Result<(), String> {
+    let launcher_process_id = std::process::id();
+    let launcher_started_at = process_started_at(launcher_process_id).ok_or_else(|| {
+        format!("런처 프로세스 생성 시각을 확인하지 못했습니다. PID: {launcher_process_id}")
+    })?;
+    let minecraft_started_at = minecraft_process_id
+        .map(|process_id| {
+            process_started_at(process_id).ok_or_else(|| {
+                format!("Minecraft 프로세스 생성 시각을 확인하지 못했습니다. PID: {process_id}")
+            })
+        })
+        .transpose()?;
     let state = json!({
+        "schemaVersion": 2,
         "createdAt": now_ms(),
-        "launcherProcessId": std::process::id(),
-        "minecraftProcessId": minecraft_process_id
+        "launcherProcessId": launcher_process_id,
+        "launcherProcessStartedAt": launcher_started_at,
+        "minecraftProcessId": minecraft_process_id,
+        "minecraftProcessStartedAt": minecraft_started_at
     });
     let content = serde_json::to_vec(&state)
         .map_err(|error| format!("게임 실행 잠금 정보를 만들지 못했습니다: {error}"))?;
@@ -195,11 +199,6 @@ pub(crate) fn update_game_lock_process_id(process_id: u32) -> Result<(), String>
         .open(&lock_path)
         .map_err(|error| io_error("게임 실행 잠금 파일을 열지 못했습니다", &lock_path, error))?;
     write_game_lock(&mut file, Some(process_id))
-}
-
-#[cfg(not(windows))]
-pub(crate) fn minecraft_process_is_running() -> Option<bool> {
-    Some(false)
 }
 
 pub(crate) fn try_acquire_game_lock() -> Result<bool, String> {
@@ -1056,16 +1055,68 @@ mod user_config_migration_tests {
         assert_eq!(migrated["options"]["renderDistance"], "24");
     }
 
-    #[test]
-    fn active_launcher_does_not_keep_lock_after_minecraft_exits() {
-        let path = std::env::temp_dir().join(format!(
-            "star-prison-ended-minecraft-{}-{}.lock",
+    fn game_lock_test_path(label: &str) -> PathBuf {
+        std::env::temp_dir().join(format!(
+            "star-prison-{label}-{}-{}.lock",
             std::process::id(),
             now_ms()
-        ));
+        ))
+    }
+
+    #[test]
+    fn game_lock_requires_the_same_process_instance() {
+        let path = game_lock_test_path("process-identity");
+        let process_id = std::process::id();
+        let started_at = process_started_at(process_id).expect("current process start time");
         let lock = json!({
+            "schemaVersion": 2,
+            "createdAt": now_ms(),
+            "launcherProcessId": process_id,
+            "launcherProcessStartedAt": started_at,
+            "minecraftProcessId": null,
+            "minecraftProcessStartedAt": null
+        });
+        fs::write(&path, serde_json::to_vec(&lock).unwrap()).unwrap();
+        assert!(existing_game_lock_is_active(&path));
+
+        let reused_pid_lock = json!({
+            "schemaVersion": 2,
+            "createdAt": now_ms(),
+            "launcherProcessId": process_id,
+            "launcherProcessStartedAt": started_at + 1,
+            "minecraftProcessId": null,
+            "minecraftProcessStartedAt": null
+        });
+        fs::write(&path, serde_json::to_vec(&reused_pid_lock).unwrap()).unwrap();
+        assert!(!existing_game_lock_is_active(&path));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn legacy_lock_does_not_fall_back_to_global_minecraft_scan() {
+        let path = game_lock_test_path("legacy");
+        let legacy_lock = json!({
+            "createdAt": now_ms(),
             "launcherProcessId": std::process::id(),
-            "minecraftProcessId": u32::MAX
+            "minecraftProcessId": null
+        });
+        fs::write(&path, serde_json::to_vec(&legacy_lock).unwrap()).unwrap();
+        assert!(!existing_game_lock_is_active(&path));
+        fs::remove_file(path).unwrap();
+    }
+
+    #[test]
+    fn game_lock_is_stale_when_minecraft_process_has_ended() {
+        let path = game_lock_test_path("ended-minecraft");
+        let process_id = std::process::id();
+        let started_at = process_started_at(process_id).expect("current process start time");
+        let lock = json!({
+            "schemaVersion": 2,
+            "createdAt": now_ms(),
+            "launcherProcessId": process_id,
+            "launcherProcessStartedAt": started_at,
+            "minecraftProcessId": process_id,
+            "minecraftProcessStartedAt": started_at + 1
         });
         fs::write(&path, serde_json::to_vec(&lock).unwrap()).unwrap();
 

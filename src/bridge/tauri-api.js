@@ -38,8 +38,8 @@ export function createLauncherBridge(){
         signIn(){
             return invoke('sign_in')
         },
-        signOut(){
-            return invoke('sign_out')
+        signOut(profileId = null){
+            return invoke('sign_out', { profileId })
         },
         selectAccount(profileId){
             return invoke('select_account', { profileId })
