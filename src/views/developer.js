@@ -17,7 +17,7 @@ function detailItem(label, value){
 
 export function renderDeveloperView(_state){
     return el('section', { className: 'terminal-view content-page developer-view' },
-        viewHeader('개발사', '// DEVELOPER'),
+        viewHeader('개발사', '// DEVELOPERS'),
         el('article', { className: 'terminal-panel content-page__panel' },
             el('section', { className: 'developer-profile' },
                 el('p', { className: 'terminal-kicker', text: 'STUDIO KOKONUT' }),
