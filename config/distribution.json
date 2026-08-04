@@ -21,16 +21,16 @@
         "mods": {
           "version": "1.0.0",
           "fileName": "mods.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=29fa0e250358a35c9ba6e18ccdc5995b87b3add9ccdec7a7faebd4c270ac0746",
-          "size": 49369885,
-          "sha256": "29fa0e250358a35c9ba6e18ccdc5995b87b3add9ccdec7a7faebd4c270ac0746"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/mods.zip?sha=32b99fdabfe981acf0e4b4f2256c80f0c652852c8f78b03a45dfee2e9cefe19d",
+          "size": 49351366,
+          "sha256": "32b99fdabfe981acf0e4b4f2256c80f0c652852c8f78b03a45dfee2e9cefe19d"
         },
         "config": {
           "version": "1.0.0",
           "fileName": "config.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=e018d01874bb08ee8d46e0d1e95f3d1d8f2067cff6f5cb10545e5290d1d1d1ca",
-          "size": 13358,
-          "sha256": "e018d01874bb08ee8d46e0d1e95f3d1d8f2067cff6f5cb10545e5290d1d1d1ca"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=0a7eb507d33fbda301ed5be19483abb07bb2bcd0f8d7d4216cafaf8a5542269d",
+          "size": 13361,
+          "sha256": "0a7eb507d33fbda301ed5be19483abb07bb2bcd0f8d7d4216cafaf8a5542269d"
         },
         "shaderpacks": {
           "version": "1.0.0",
@@ -229,11 +229,6 @@
           },
           {
             "path": "mods/jei-1.21.11-fabric-27.17.0.50.jar",
-            "kind": "mod",
-            "required": true
-          },
-          {
-            "path": "mods/keymappingmod-1.0.jar",
             "kind": "mod",
             "required": true
           },
@@ -550,8 +545,8 @@
             "path": "config/xaero/minimap/profiles/default.cfg",
             "kind": "config-seed",
             "required": true,
-            "size": 3656,
-            "sha256": "83a7f6beef696307899025da36b25a444d69d83d1572d49def584eac90a8694b"
+            "size": 3657,
+            "sha256": "06f24cc85a9ce973a40a9c68fd85e820979d56ea4b8a7726c4d24bf0caceb7af"
           },
           {
             "path": "config/xaero/minimap/profiles/info_display_config/default.cfg.txt",
