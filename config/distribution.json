@@ -28,9 +28,9 @@
         "config": {
           "version": "1.0.0",
           "fileName": "config.zip",
-          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=0a7eb507d33fbda301ed5be19483abb07bb2bcd0f8d7d4216cafaf8a5542269d",
-          "size": 13361,
-          "sha256": "0a7eb507d33fbda301ed5be19483abb07bb2bcd0f8d7d4216cafaf8a5542269d"
+          "url": "https://github.com/nobabo/Star-Prison-Launcher/releases/download/1.0.0/config.zip?sha=ff43fa700f42c38eb03b41e6cf0275f8a44a9e8749e0c1faf6512517a855d0ba",
+          "size": 14426,
+          "sha256": "ff43fa700f42c38eb03b41e6cf0275f8a44a9e8749e0c1faf6512517a855d0ba"
         },
         "shaderpacks": {
           "version": "1.0.0",
@@ -547,6 +547,13 @@
             "required": true,
             "size": 3657,
             "sha256": "06f24cc85a9ce973a40a9c68fd85e820979d56ea4b8a7726c4d24bf0caceb7af"
+          },
+          {
+            "path": "config/xaero/minimap/profiles/entity_rader_categories/default.cfg.json",
+            "kind": "config-seed",
+            "required": true,
+            "size": 6094,
+            "sha256": "094e5b9a978abe5cc69ccab0aa8bd84b32062fa034fcef25316d23e0bdcc114a"
           },
           {
             "path": "config/xaero/minimap/profiles/info_display_config/default.cfg.txt",
